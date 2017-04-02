@@ -15,8 +15,19 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     
-  build-depends:       base >= 4.7 && < 5
+  exposed-modules:     Common.GObjects, Common.GTypes,
+                       GNetwork.Client, GNetwork.Server,
+                       GState.Client, GState.Server
+  build-depends:       base >= 4.7 && < 5,
+                       network,
+                       bytestring,
+                       OpenGL,
+                       GLFW-b,
+                       stm,
+                       cereal,
+                       mtl,
+                       async,
+                       containers
   default-language:    Haskell2010
 
 executable Server
@@ -24,7 +35,16 @@ executable Server
   main-is:             Server.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base,
-                       HaskellGame
+                       HaskellGame,
+                       network,
+                       bytestring,
+                       OpenGL,
+                       GLFW-b,
+                       stm,
+                       cereal,
+                       mtl,
+                       async,
+                       containers
   default-language:    Haskell2010
 
 executable Client
@@ -32,7 +52,16 @@ executable Client
   main-is:             Client.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base,
-                       HaskellGame
+                       HaskellGame,
+                       network,
+                       bytestring,
+                       OpenGL,
+                       GLFW-b,
+                       stm,
+                       cereal,
+                       mtl,
+                       async,
+                       containers
   default-language:    Haskell2010
 
 test-suite HaskellGame-test

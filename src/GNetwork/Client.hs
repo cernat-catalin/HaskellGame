@@ -1,0 +1,2 @@
+module GNetwork.Client (
+  ) where
