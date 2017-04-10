@@ -13,9 +13,11 @@ import qualified Data.ByteString as BS
 import Control.Monad (forever, join)
 import Control.Concurrent.STM (atomically, writeTChan, readTChan)
 import Data.Serialize (decode)
+import Text.Printf (printf)
 
 import Common.GTypes (HostName, Port)
 import GState.Client (ClientState(..), ConnHandle(..))
+import GLogger.Client (logError)
 
 
 connectTo :: HostName -> Port -> IO ConnHandle
@@ -36,7 +38,7 @@ receiver ClientState{..} = forever $ do
   let eitherMessage = decode recv
   case eitherMessage of
     Right message -> atomically $ writeTChan serverInChan message
-    Left  err     -> putStrLn $ "Received non message: " ++ err
+    Left _        -> logError (printf "Received non decodable message '%s'" (show recv))
  where
   maxBytes = 1024
 

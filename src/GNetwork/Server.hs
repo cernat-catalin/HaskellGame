@@ -11,15 +11,16 @@ module GNetwork.Server (
 
 import qualified Network.Socket as NS
 import qualified Network.Socket.ByteString as NSB
-import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Map as Map
 import Control.Concurrent (forkIO)
 import Control.Concurrent.STM (STM, atomically, readTChan, readTVar, writeTChan)
 import Control.Monad (forever, join, when)
 import Data.Serialize (decode, encode)
+import Text.Printf (printf)
 
 import GState.Server (Server(..), Client(..), addClient)
 import Common.GTypes (Port, Message(..), ClientMessage(..))
+import GLogger.Server (logInfo, logError)
 
 
 listenTo :: Port -> IO NS.Socket
@@ -36,12 +37,10 @@ listenTo port = do
 receiver :: Server -> IO ()
 receiver Server{..} = forever $ do
   (recv, addr) <- NSB.recvFrom messageSocket maxBytes
-  putStrLn $ "Received from: " ++ (show addr) ++ " - " ++ (BS8.unpack recv)
   let eitherMessage = decode recv
-  putStrLn $ "Message was: " ++ (show eitherMessage)
   case eitherMessage of
     Right message -> atomically $ writeTChan inMessageChan (ClientMessage addr message)
-    Left err      -> putStrLn $ "Received non message: " ++ err
+    Left _        -> logError (printf "From '%s' received non decodable message '%s'" (show addr) (show recv))
  where
   maxBytes = 1024
 
@@ -54,11 +53,11 @@ inMessageProcessor server@Server{..} = join $ atomically $ do
         ok <- addClient server addr
         case ok of
           Just client -> do
-            Prelude.putStrLn $ "Client: " ++ (show client) ++ " connected"
+            logInfo (printf "Client %s connected" (show client))
             forkIO (outMessageProcessor server client)
             return ()
-          Nothing     -> Prelude.putStrLn $ "A client with an addr already in use tried to connects"
-      _                 -> Prelude.putStrLn $ "unknown message type: " ++ (show message)
+          Nothing     -> logError (printf "Client address %s already in use" (show addr))
+      _                 -> logError (printf "Message %s didn't pattern match" (show message))
     inMessageProcessor server
 
 -- TODO: what if client force quits ? who kills the thread then?

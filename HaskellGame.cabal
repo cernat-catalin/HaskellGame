@@ -17,7 +17,8 @@ library
   hs-source-dirs:      src
   exposed-modules:     Common.GObjects, Common.GTypes,
                        GNetwork.Client, GNetwork.Server,
-                       GState.Client, GState.Server
+                       GState.Client, GState.Server,
+                       GLogger.Client, GLogger.Server
   build-depends:       base >= 4.7 && < 5,
                        network,
                        bytestring,
@@ -28,7 +29,8 @@ library
                        mtl,
                        async,
                        containers,
-                       lens
+                       lens,
+                       hslogger
   default-language:    Haskell2010
 
 executable Server
@@ -46,7 +48,8 @@ executable Server
                        mtl,
                        async,
                        containers,
-                       lens
+                       lens,
+                       hslogger
   default-language:    Haskell2010
 
 executable Client
@@ -63,7 +66,9 @@ executable Client
                        cereal,
                        mtl,
                        async,
-                       containers
+                       containers,
+                       lens,
+                       hslogger
   default-language:    Haskell2010
 
 test-suite HaskellGame-test

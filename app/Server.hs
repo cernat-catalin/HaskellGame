@@ -11,6 +11,7 @@ import Control.Monad (forever)
 import Common.GTypes (Message(..))
 import GState.Server (Server(..), newServer)
 import GNetwork.Server (listenTo, receiver, inMessageProcessor, broadcast)
+import GLogger.Server (initLogger, cleanLog, logInfo)
 
 
 updates :: Server -> IO ()
@@ -20,10 +21,12 @@ updates server = forever $ do
 
 main :: IO ()
 main = withSocketsDo $ do
-  inMessageSock <- listenTo port
-  server <- newServer inMessageSock
+  cleanLog
+  initLogger
 
-  printf "Listening on port %s\n" port
+  messageSock <- listenTo port
+  server <- newServer messageSock
+  logInfo (printf "Listening on port %s" port)
 
   forkIO (updates server)
   forkIO (inMessageProcessor server)
