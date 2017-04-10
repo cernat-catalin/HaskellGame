@@ -3,61 +3,59 @@
 module GState.Server (
   Client(..),
   Server(..),
-  newServer,
   newClient,
+  newServer,
   addClient,
   removeClient
   ) where
 
-import           Network.Socket (Socket, SockAddr)
-import           Control.Concurrent.STM
+import qualified Network.Socket as NS
+import qualified Control.Concurrent.STM as STM
 import qualified Data.Map as Map
-import           Common.GTypes (Message, ClientMessage)
+import Common.GTypes (Message, ClientMessage)
 
 
--- TODO: do I really need a TChan here ? 
 data Client = Client {
-  clientAddr     :: SockAddr,
-  outMessageChan :: TChan Message
+  clientAddr     :: NS.SockAddr,
+  outMessageChan :: STM.TChan Message
 }
 
 instance Show Client where
   show client = show (clientAddr client)
 
--- TODO: do I really need a TChan here ? YES
 data Server = Server {
-  clients         :: TVar (Map.Map SockAddr Client),
-  messageSocket   :: Socket,
-  inMessageChan   :: TChan ClientMessage
+  clients         :: STM.TVar (Map.Map NS.SockAddr Client),
+  messageSocket   :: NS.Socket,
+  inMessageChan   :: STM.TChan ClientMessage
 }
 
-newServer :: Socket -> IO Server
+newClient :: NS.SockAddr -> STM.STM Client
+newClient addr = do
+  outMessageChan <- STM.newTChan
+  return Client {
+    clientAddr     = addr,
+    outMessageChan = outMessageChan
+  }
+
+newServer :: NS.Socket -> IO Server
 newServer messageSocket = do
-  clients     <- newTVarIO Map.empty
-  inMessageChan <- newTChanIO
+  clients <- STM.newTVarIO Map.empty
+  inMessageChan <- STM.newTChanIO
   return Server {
     clients           = clients,
     messageSocket     = messageSocket,
     inMessageChan     = inMessageChan
   }
 
-newClient :: SockAddr -> STM Client
-newClient addr = do
-  outMessageChan <- newTChan
-  return Client {
-    clientAddr     = addr,
-    outMessageChan = outMessageChan
-  }
-
-removeClient :: Server -> SockAddr -> IO ()
-removeClient Server{..} addr = atomically $ do
-  modifyTVar' clients $ Map.delete addr
-
-addClient :: Server -> SockAddr -> IO (Maybe Client)
-addClient Server{..} addr = atomically $ do
-  clientMap <- readTVar clients
+addClient :: Server -> NS.SockAddr -> IO (Maybe Client)
+addClient Server{..} addr = STM.atomically $ do
+  clientMap <- STM.readTVar clients
   if Map.member addr clientMap
     then return Nothing
     else do client <- newClient addr
-            writeTVar clients $ Map.insert addr client clientMap
+            STM.writeTVar clients $ Map.insert addr client clientMap
             return (Just client)
+
+removeClient :: Server -> NS.SockAddr -> IO ()
+removeClient Server{..} addr = STM.atomically $ do
+  STM.modifyTVar' clients $ Map.delete addr

@@ -1,12 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Common.GObjects (
-  Circle(..)
+  Circle(..),
+  Point,
+  Radius
   ) where
 
-import Graphics.Rendering.OpenGL           (GLdouble)
-import GHC.Generics                        (Generic)
-import Data.Serialize                      (Serialize)
+import Graphics.Rendering.OpenGL (GLdouble)
+import GHC.Generics (Generic)
+import Data.Serialize (Serialize)
 
 
 type Point = (GLdouble, GLdouble)

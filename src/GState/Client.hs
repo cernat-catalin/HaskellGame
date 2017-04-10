@@ -1,6 +1,6 @@
 module GState.Client (
-  ClientState(..),
   ConnHandle(..),
+  ClientState(..),
   newClientState
   ) where
 
@@ -15,7 +15,7 @@ data ConnHandle = ConnHandle {
 } deriving (Show)
 
 data ClientState = ClientState {
-  serverHandle :: ConnHandle,
+  serverHandle  :: ConnHandle,
   serverInChan  :: TChan Message
 }
 

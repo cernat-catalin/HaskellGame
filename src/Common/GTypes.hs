@@ -2,14 +2,14 @@
 
 module Common.GTypes (
   ClientName,
-  Message(..),
-  ClientMessage(..),
   HostName,
-  Port
+  Port,
+  Message(..),
+  ClientMessage(..)
   ) where
 
 import Data.Serialize (Serialize)
-import GHC.Generics   (Generic)
+import GHC.Generics (Generic)
 import Network.Socket (SockAddr)
 
 
@@ -21,9 +21,10 @@ type Port = String
 
 data Message = ConnectionRequest
              | ConnectionAccepted
+             | ConnectionTerminated
              | InvalidName
              | WorldUpdateTest
-             deriving (Show, Generic)
+             deriving (Show, Generic, Eq)
 
 instance Serialize Message
 
