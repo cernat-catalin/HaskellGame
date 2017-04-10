@@ -9,45 +9,55 @@ module GState.Server (
   removeClient
   ) where
 
-import Network.Socket (Socket)
-import Control.Concurrent.STM
+import           Network.Socket (Socket, SockAddr)
+import           Control.Concurrent.STM
 import qualified Data.Map as Map
-import Common.GTypes (ClientName, Message)
+import           Common.GTypes (Message, ClientMessage)
 
 
+-- TODO: do I really need a TChan here ? 
 data Client = Client {
-  clientName :: ClientName,
-  clientSocket :: Socket,
-  clientSendChan :: TChan Message
+  clientAddr     :: SockAddr,
+  outMessageChan :: TChan Message
 }
 
+instance Show Client where
+  show client = show (clientAddr client)
+
+-- TODO: do I really need a TChan here ? YES
 data Server = Server {
-  clients :: TVar (Map.Map ClientName Client)
+  clients         :: TVar (Map.Map SockAddr Client),
+  messageSocket   :: Socket,
+  inMessageChan   :: TChan ClientMessage
 }
 
-newServer :: IO Server
-newServer = do
-  clients <- newTVarIO Map.empty
-  return Server { clients = clients }
-
-newClient :: ClientName -> Socket -> STM Client
-newClient name sock = do
-  chan <- newTChan
-  return Client {
-    clientName     = name,
-    clientSocket   = sock,
-    clientSendChan = chan
+newServer :: Socket -> IO Server
+newServer messageSocket = do
+  clients     <- newTVarIO Map.empty
+  inMessageChan <- newTChanIO
+  return Server {
+    clients           = clients,
+    messageSocket     = messageSocket,
+    inMessageChan     = inMessageChan
   }
 
-removeClient :: Server -> ClientName -> IO ()
-removeClient Server{..} name = atomically $ do
-  modifyTVar' clients $ Map.delete name
+newClient :: SockAddr -> STM Client
+newClient addr = do
+  outMessageChan <- newTChan
+  return Client {
+    clientAddr     = addr,
+    outMessageChan = outMessageChan
+  }
 
-addClient :: Server -> ClientName -> Socket -> IO (Maybe Client)
-addClient Server{..} name sock = atomically $ do
+removeClient :: Server -> SockAddr -> IO ()
+removeClient Server{..} addr = atomically $ do
+  modifyTVar' clients $ Map.delete addr
+
+addClient :: Server -> SockAddr -> IO (Maybe Client)
+addClient Server{..} addr = atomically $ do
   clientMap <- readTVar clients
-  if Map.member name clientMap
+  if Map.member addr clientMap
     then return Nothing
-    else do client <- newClient name sock
-            writeTVar clients $ Map.insert name client clientMap
+    else do client <- newClient addr
+            writeTVar clients $ Map.insert addr client clientMap
             return (Just client)

@@ -9,61 +9,54 @@ import Data.ByteString.Char8 as BS8
 import Control.Concurrent.STM
 import Text.Printf (printf)
 import Control.Exception.Base (finally)
-import Control.Concurrent (forkFinally)
-import Control.Monad (forever, when, join)
+import Control.Concurrent (forkFinally, forkIO, threadDelay)
+import Control.Monad (forever, join)
 import Control.Concurrent.Async
+import qualified Data.Map as Map
 
 import Common.GTypes
 import GState.Server
 import GNetwork.Server
 
-runClient :: Server -> Client -> IO ()
-runClient serv@Server{..} client@Client{..} = do
-  race receiver server
-  return ()
- where
-  receiver = forever $ do
-    msg <- NBS.recv clientSocket 1024
-    Prelude.putStrLn $ "received: " ++ (show msg) ++ " from: " ++ (show clientSocket)
-    atomically $ sendMessage client RandomObject
-  
-  server = join $ atomically $ do
-    msg <- readTChan clientSendChan
-    return $ do
-      continue <- handleMessage serv client msg
-      when continue $ server
 
-handleMessage :: Server -> Client -> Message -> IO Bool
-handleMessage _ Client{..} msg =
-  case msg of
-    RandomObject -> do
-      NBS.send clientSocket $ BS8.pack "World update"
-      return True
+updates :: Server -> IO ()
+updates server = forever $ do
+  atomically $ broadcast server WorldUpdateTest
+  threadDelay 16000 -- 0.016 sec
 
-talk :: Socket -> Server -> IO ()
-talk sock server@Server{..} = readName
+processOutMessages :: Server -> IO ()
+processOutMessages server@Server{..} = join $ atomically $ do
+  clientMap <- readTVar clients
+  return $ do
+    mapM_ (\client -> sendMessagesIO server client) (Map.elems clientMap)
+    threadDelay 16000
+    processOutMessages server
  where
-  readName = do
-    name <- NBS.recv sock 1024
-    if BS8.null name
-      then readName
-      else do
-        ok <- addClient server (BS8.unpack name) sock
+
+processInMessages :: Server -> IO ()
+processInMessages server@Server{..} = join $ atomically $ do
+  (ClientMessage addr message) <- readTChan inMessageChan  
+  return $ do
+    case message of
+      ConnectionRequest -> do
+        ok <- addClient server addr
         case ok of
-          Nothing -> do
-            NBS.send sock $ BS8.pack "Invalid name"
-            readName
-          Just client -> runClient server client `finally` removeClient server (BS8.unpack name)
+          Just client -> Prelude.putStrLn $ "Client: " ++ (show client) ++ " connected"
+          Nothing     -> Prelude.putStrLn $ "A client with an addr already in use tried to connects"
+      _                 -> Prelude.putStrLn $ "unknown message type: " ++ (show message)
+    processInMessages server
+      
 
 main :: IO ()
 main = withSocketsDo $ do
-  server <- newServer
-  sock <- listenOn (PortNumber (fromIntegral port))
-  printf "Listening on port %d\n" port
-  forever $ do
-    (sock', _) <- NS.accept sock
-    printf "Accepted connection from %s\n" (show sock')
-    forkFinally (talk sock' server) (\e -> do print e; NS.close sock')
-    
-port :: Int
-port = 44444
+  inMessageSock <- listenTo port
+  server <- newServer inMessageSock
+  printf "Listening on port %s\n" port
+
+  forkIO (updates server)
+  forkIO (processOutMessages server)
+  forkIO (processInMessages server)
+
+  receiver server
+ where
+  port = "10541"
