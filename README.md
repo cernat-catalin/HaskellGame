@@ -7,3 +7,8 @@ TODO list:
 - [x] Add basic logging (only on networking)
 - [x] Initial handshake between server and client
 - [x] Redo the architecture (HTA - will describe later)
+- [ ] Basic game objects
+- [ ] Baisc transformations for game objects
+- [ ] OpenGL context on client
+- [ ] Simple playable game
+- [ ] Code review
