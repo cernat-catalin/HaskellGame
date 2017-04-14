@@ -10,5 +10,6 @@ TODO list:
 - [ ] Basic game objects
 - [ ] Baisc transformations for game objects
 - [ ] OpenGL context on client
+- [ ] Server main loop
 - [ ] Simple playable game
 - [ ] Code review
