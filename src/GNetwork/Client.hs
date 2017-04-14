@@ -4,7 +4,8 @@ module GNetwork.Client (
   connectTo,
   sendMessage,
   receiver,
-  inMessageProcessor
+  inMessageProcessor,
+  initialSetup
   ) where
 
 import qualified Network.Socket as NS
@@ -12,10 +13,10 @@ import qualified Network.Socket.ByteString as NSB
 import qualified Data.ByteString as BS
 import Control.Monad (forever, join)
 import Control.Concurrent.STM (atomically, writeTChan, readTChan)
-import Data.Serialize (decode)
+import Data.Serialize (decode, encode)
 import Text.Printf (printf)
 
-import Common.GTypes (HostName, Port)
+import Common.GTypes (HostName, Port, Message(..), ClientSettings(..))
 import GState.Client (ClientState(..), ConnHandle(..))
 import GLogger.Client (logError)
 
@@ -49,3 +50,9 @@ inMessageProcessor clientState@ClientState{..} = join $ atomically $ do
   return $ do
     putStrLn $ show message
     inMessageProcessor clientState
+
+initialSetup :: ClientState -> IO ()
+initialSetup clientState = do
+  let settings = ClientSettings {name = "Levi", color = "Green"}
+  sendMessage clientState (encode $ ConnectionRequest settings)
+  return ()

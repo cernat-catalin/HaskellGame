@@ -10,7 +10,7 @@ import Control.Monad (forever)
 
 import Common.GTypes (Message(..))
 import GState.Server (Server(..), newServer)
-import GNetwork.Server (listenTo, receiver, inMessageProcessor, broadcast)
+import GNetwork.Server (listenTo, masterReceiver, broadcast)
 import GLogger.Server (initLogger, cleanLog, logInfo)
 
 
@@ -29,7 +29,6 @@ main = withSocketsDo $ do
   logInfo (printf "Listening on port %s" port)
 
   forkIO (updates server)
-  forkIO (inMessageProcessor server)
-  receiver server
+  masterReceiver server
  where
   port = "10541"

@@ -12,12 +12,14 @@ module GState.Server (
 import qualified Network.Socket as NS
 import qualified Control.Concurrent.STM as STM
 import qualified Data.Map as Map
-import Common.GTypes (Message, ClientMessage)
+import Common.GTypes (Message, ClientSettings)
 
 
 data Client = Client {
   clientAddr     :: NS.SockAddr,
-  outMessageChan :: STM.TChan Message
+  inMessageChan  :: STM.TChan Message,
+  outMessageChan :: STM.TChan Message,
+  clientSettings :: ClientSettings
 }
 
 instance Show Client where
@@ -25,36 +27,33 @@ instance Show Client where
 
 data Server = Server {
   clients         :: STM.TVar (Map.Map NS.SockAddr Client),
-  messageSocket   :: NS.Socket,
-  inMessageChan   :: STM.TChan ClientMessage
+  messageSocket   :: NS.Socket
 }
 
-newClient :: NS.SockAddr -> STM.STM Client
-newClient addr = do
+newClient :: NS.SockAddr -> ClientSettings -> STM.STM Client
+newClient addr settings = do
   outMessageChan <- STM.newTChan
+  inMessageChan  <- STM.newTChan
   return Client {
     clientAddr     = addr,
-    outMessageChan = outMessageChan
+    inMessageChan  = inMessageChan,
+    outMessageChan = outMessageChan,
+    clientSettings = settings
   }
 
 newServer :: NS.Socket -> IO Server
 newServer messageSocket = do
   clients <- STM.newTVarIO Map.empty
-  inMessageChan <- STM.newTChanIO
   return Server {
     clients           = clients,
-    messageSocket     = messageSocket,
-    inMessageChan     = inMessageChan
+    messageSocket     = messageSocket
   }
 
-addClient :: Server -> NS.SockAddr -> IO (Maybe Client)
-addClient Server{..} addr = STM.atomically $ do
-  clientMap <- STM.readTVar clients
-  if Map.member addr clientMap
-    then return Nothing
-    else do client <- newClient addr
-            STM.writeTVar clients $ Map.insert addr client clientMap
-            return (Just client)
+addClient :: Server -> NS.SockAddr -> ClientSettings -> STM.STM Client
+addClient Server{..} addr settings = do
+  client <- newClient addr settings
+  STM.modifyTVar' clients $ Map.insert addr client
+  return client
 
 removeClient :: Server -> NS.SockAddr -> IO ()
 removeClient Server{..} addr = STM.atomically $ do
