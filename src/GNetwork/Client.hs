@@ -4,7 +4,6 @@ module GNetwork.Client (
   connectTo,
   sendMessage,
   receiver,
-  inMessageProcessor,
   initialSetup
   ) where
 
@@ -18,7 +17,7 @@ import Text.Printf (printf)
 
 import Common.GTypes (HostName, Port, Message(..), ClientSettings(..))
 import GState.Client (ClientState(..), ConnHandle(..))
-import GLogger.Client (logError)
+import GLogger.Client (logError, logInfo)
 
 
 connectTo :: HostName -> Port -> IO ConnHandle
@@ -30,6 +29,7 @@ connectTo hostName port = do
 
 sendMessage :: ClientState -> BS.ByteString -> IO Int
 sendMessage ClientState{..} message = do
+  logInfo (printf "Sent message %s" (show message))
   let (sock, addr) = (connSocket serverHandle, connAddr serverHandle)
   NSB.sendTo sock message addr 
 
@@ -38,18 +38,11 @@ receiver ClientState{..} = forever $ do
   recv <- NSB.recv (connSocket serverHandle) maxBytes
   let eitherMessage = decode recv
   case eitherMessage of
-    Right message -> atomically $ writeTChan serverInChan message
+    Right message -> do
+      atomically $ writeTChan worldMessages message
     Left _        -> logError (printf "Received non decodable message '%s'" (show recv))
  where
   maxBytes = 1024
-
--- TODO: thinks about the life of this thread
-inMessageProcessor :: ClientState -> IO ()
-inMessageProcessor clientState@ClientState{..} = join $ atomically $ do
-  message <- readTChan serverInChan
-  return $ do
-    putStrLn $ show message
-    inMessageProcessor clientState
 
 initialSetup :: ClientState -> IO ()
 initialSetup clientState = do

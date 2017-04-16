@@ -12,12 +12,14 @@ module GState.Server (
 import qualified Network.Socket as NS
 import qualified Control.Concurrent.STM as STM
 import qualified Data.Map as Map
-import Common.GTypes (Message, ClientSettings)
+
+import Common.GTypes (Message, ClientMessage, ClientSettings)
+import Common.GObjects (World(..), newWorld)
 
 
 data Client = Client {
   clientAddr     :: NS.SockAddr,
-  inMessageChan  :: STM.TChan Message,
+  -- inMessageChan  :: STM.TChan Message,
   outMessageChan :: STM.TChan Message,
   clientSettings :: ClientSettings
 }
@@ -27,16 +29,18 @@ instance Show Client where
 
 data Server = Server {
   clients         :: STM.TVar (Map.Map NS.SockAddr Client),
-  messageSocket   :: NS.Socket
+  messageSocket   :: NS.Socket,
+  worldMessages   :: STM.TChan ClientMessage,
+  world           :: World
 }
 
 newClient :: NS.SockAddr -> ClientSettings -> STM.STM Client
 newClient addr settings = do
   outMessageChan <- STM.newTChan
-  inMessageChan  <- STM.newTChan
+  -- inMessageChan  <- STM.newTChan
   return Client {
     clientAddr     = addr,
-    inMessageChan  = inMessageChan,
+    -- inMessageChan  = inMessageChan,
     outMessageChan = outMessageChan,
     clientSettings = settings
   }
@@ -44,9 +48,12 @@ newClient addr settings = do
 newServer :: NS.Socket -> IO Server
 newServer messageSocket = do
   clients <- STM.newTVarIO Map.empty
+  worldMessages <- STM.newTChanIO
   return Server {
     clients           = clients,
-    messageSocket     = messageSocket
+    messageSocket     = messageSocket,
+    worldMessages     = worldMessages,
+    world             = newWorld
   }
 
 addClient :: Server -> NS.SockAddr -> ClientSettings -> STM.STM Client

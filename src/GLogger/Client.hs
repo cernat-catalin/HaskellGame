@@ -14,8 +14,9 @@ module GLogger.Client (
 import qualified System.Log.Logger as SL
 import System.Log.Handler.Simple (fileHandler)
 import System.Log.Handler (setFormatter)
-import System.Log.Formatter (simpleLogFormatter)
+import System.Log.Formatter (tfLogFormatter)
 import System.IO (withFile, IOMode(..))
+import Control.Monad (when)
 
 
 logFileName :: String
@@ -24,36 +25,48 @@ logFileName = "client.log"
 loggerName :: String
 loggerName = "clientLogger"
 
+enableLogging :: Bool
+enableLogging = True
+
 initLogger :: IO ()
-initLogger = do
+initLogger = when enableLogging $ do
   h <- fileHandler logFileName SL.DEBUG >>= \lh -> return $
-                  setFormatter lh (simpleLogFormatter "[$time : $loggername : $prio] $msg")
+                  setFormatter lh (tfLogFormatter "%T:%q" "[$time: $loggername : $prio] $msg")
   SL.updateGlobalLogger loggerName (SL.setLevel SL.DEBUG)
   SL.updateGlobalLogger loggerName (SL.addHandler h)
 
 cleanLog :: IO ()
-cleanLog = withFile logFileName WriteMode (\_ -> return ())
+cleanLog = when enableLogging $ do
+  withFile logFileName WriteMode (\_ -> return ())
 
 logDebug :: String -> IO ()
-logDebug = SL.debugM loggerName
+logDebug string = when enableLogging $ do
+  SL.debugM loggerName string
 
 logInfo :: String -> IO ()
-logInfo = SL.infoM loggerName
+logInfo string = when enableLogging $ do
+  SL.infoM loggerName string
 
 logNotice :: String -> IO ()
-logNotice = SL.noticeM loggerName
+logNotice string = when enableLogging $ do
+  SL.noticeM loggerName string
 
 logWarning :: String -> IO ()
-logWarning = SL.warningM loggerName
+logWarning string = when enableLogging $ do
+  SL.warningM loggerName string
 
 logError :: String -> IO ()
-logError = SL.errorM loggerName
+logError string = when enableLogging $ do
+  SL.errorM loggerName string
 
 logCritical :: String -> IO ()
-logCritical = SL.criticalM loggerName
+logCritical string = when enableLogging $ do
+  SL.criticalM loggerName string
 
 logAlert :: String -> IO ()
-logAlert = SL.alertM loggerName
+logAlert string = when enableLogging $ do
+  SL.alertM loggerName string
 
 logEmergency :: String -> IO ()
-logEmergency = SL.emergencyM loggerName
+logEmergency string = when enableLogging $ do
+  SL.emergencyM loggerName string

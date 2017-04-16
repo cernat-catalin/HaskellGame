@@ -16,8 +16,8 @@ import Control.Monad (forever, join, when)
 import Data.Serialize (decode, encode)
 import Text.Printf (printf)
 
-import GState.Server (Server(..), Client(..), addClient)
-import Common.GTypes (Port, Message(..), ClientSettings)
+import GState.Server (Server(..), Client(..), addClient, removeClient)
+import Common.GTypes (Port, Message(..), ClientMessage(..), ClientSettings)
 import GLogger.Server (logInfo, logError)
 
 
@@ -38,15 +38,19 @@ masterReceiver server@Server{..} = forever $ do
   let eitherMessage = decode recv
   case eitherMessage of
     Right message -> do
+      logInfo (printf "Receiver message %s from client %s" (show message) (show addr))
       case message of
         ConnectionRequest settings -> initialSetup server addr settings
-        ConnectionTerminated       -> undefined -- TODO
+        Quit                       -> do
+          logInfo (printf "Client %s disconnected" (show addr))
+          removeClient server addr
+          atomically $ writeTChan worldMessages (ClientMessage addr RemovePlayer)
         _                          -> join $ atomically $ do
           clientMap <- readTVar clients
           let clientM = Map.lookup addr clientMap
           case clientM of
-            Just client -> do
-              sendMessage client message
+            Just _ -> do
+              writeTChan worldMessages (ClientMessage addr message)
               return $ pure ()
             Nothing     -> return $ do
                              logError (printf "Non connection request message from unconnected client %s : %s" (show addr) (show recv))
@@ -54,13 +58,13 @@ masterReceiver server@Server{..} = forever $ do
  where
   maxBytes = 1024
 
-clientReceiver :: Client -> IO ()
-clientReceiver client@Client{..} = join $ atomically $ do
-  message <- readTChan inMessageChan
-  return $ do
-    case message of
-      _ -> logInfo (printf "clientReceiver %s : %s" (show client) (show message))
-    clientReceiver client
+-- clientReceiver :: Client -> IO ()
+-- clientReceiver client@Client{..} = join $ atomically $ do
+--   message <- readTChan inMessageChan
+--   return $ do
+--     case message of
+--       _ -> logInfo (printf "clientReceiver %s : %s" (show client) (show message))
+--     clientReceiver client
 
 -- TODO: use async race (I think) to create a sibling relationship between clientSender and clientReceiver
 clientSender :: Server -> Client -> IO ()
@@ -80,7 +84,8 @@ initialSetup server@Server{..} addr settings = join $ atomically $ do
       client <- addClient server addr settings
       return $ do
         logInfo (printf "Client %s connected" (show addr))
-        forkIO (clientReceiver client)
+        -- forkIO (clientReceiver client)
+        atomically $ writeTChan worldMessages (ClientMessage addr AddPlayer)
         forkIO (clientSender server client)
         return ()
 
