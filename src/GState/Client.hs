@@ -5,9 +5,9 @@ module GState.Client (
   ) where
 
 import Network.Socket (Socket, SockAddr)
-import Control.Concurrent.STM
+import Control.Concurrent.STM (TChan, TVar, newTChanIO, newTVarIO)
 
-import Common.GTypes (Message)
+import Common.GMessages (WorldMessage, ServiceMessage)
 import Common.GObjects (World, newWorld)
 
 
@@ -16,28 +16,27 @@ data ConnHandle = ConnHandle {
   connAddr   :: SockAddr
 } deriving (Show)
 
--- TODO inputMessage doesn't make any sense, rename it
--- Also, it should not be the same data structure as worldMessages
 data ClientState = ClientState {
-  serverHandle     :: ConnHandle,
-  worldMessages    :: TChan Message,
-  inputMessages    :: TChan Message,
-  servicesMessages :: TChan Message,
-  world            :: World,
-  shouldQuit       :: TVar Bool
+  serverHandle    :: ConnHandle,
+  worldUpdateChan :: TChan WorldMessage,
+  worldInputChan  :: TChan WorldMessage,
+  settingsSvcChan :: TChan ServiceMessage,
+  world           :: World,
+  shouldQuit      :: TVar Bool
 }
 
 newClientState :: ConnHandle -> IO ClientState
 newClientState connHandle = do
-  worldMessages <- newTChanIO
-  inputMessages <- newTChanIO
-  shouldQuit <- newTVarIO False
-  servicesMessages <- newTChanIO
+  worldUpdateChan' <- newTChanIO
+  worldInputChan'  <- newTChanIO
+  shouldQuit'      <- newTVarIO False
+  settingsSvcChan' <- newTChanIO
+
   return ClientState {
-    serverHandle  = connHandle,
-    worldMessages = worldMessages,
-    inputMessages = inputMessages,
-    servicesMessages = servicesMessages,
-    world         = newWorld,
-    shouldQuit    = shouldQuit
+    serverHandle    = connHandle,
+    worldUpdateChan = worldUpdateChan',
+    worldInputChan  = worldInputChan',
+    settingsSvcChan = settingsSvcChan',
+    world           = newWorld,
+    shouldQuit      = shouldQuit'
   }

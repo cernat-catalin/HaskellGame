@@ -21,7 +21,7 @@ main = withSocketsDo $ do
   server <- newServer messageSock
   logInfo (printf "Listening on port %s" port)
 
-  forkIO (mainLoop server)
-  masterReceiver server
+  forkIO (masterReceiver server)
+  mainLoop server
  where
   port = "10541"

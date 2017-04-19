@@ -18,11 +18,11 @@ import GLogger.Client (initLogger, cleanLog, logInfo, logError)
 import Common.GObjects (Circle(..), Player(..), World(..))
 import GMainLoop.Client (mainLoop)
 import GOpenGL.Client (withOpenGL)
-import GServices.Client (processServicesMessages)
+import GServices.Client (settingsService)
 import System.Posix.Signals (installHandler, keyboardSignal, Handler(..))
 import qualified Control.Exception as E
 import Data.Serialize (decode, encode)
-import Common.GTypes (Message(..))
+import Common.GMessages (ServiceMessage(..))
 
 main :: IO ()
 main = withSocketsDo $ do
@@ -41,7 +41,7 @@ main = withSocketsDo $ do
   -- weird things happen. Possibly swap buffers isn't called correctly (is delayed)
   -- Found this: GLFW doesn't work well with GHC threads, forkIO or threadDelay. So avoid them if you can.
   forkIO (receiver clientState)
-  forkIO (processServicesMessages clientState)
+  forkIO (settingsService clientState)
   tid <- myThreadId
   installHandler keyboardSignal (Catch $ endLife clientState tid) Nothing
   withOpenGL clientState (mainLoop clientState)

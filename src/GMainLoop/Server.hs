@@ -12,7 +12,7 @@ import Text.Printf (printf)
 
 import GState.Server (Server(..))
 import GNetwork.Server (broadcast)
-import Common.GTypes (Message(..), ClientMessage(..))
+import Common.GMessages (Message(..), WorldMessage(..), ClientWorldMessage(..))
 import Common.GObjects (World(..), WorldS)
 import Common.GTransform (getPlayer, movePlayerLeft, movePlayerRight, movePlayerUp, movePlayerDown, updatePlayer, addPlayer, removePlayer)
 import GLogger.Server (logInfo)
@@ -38,18 +38,18 @@ mainLoop server@Server{..} = do
 -}
 updateWorld :: Server -> IO World
 updateWorld server@Server{..} = join $ atomically $ do
-  emptyChan <- isEmptyTChan worldMessages
+  emptyChan <- isEmptyTChan worldChan
   if not emptyChan
     then do
-        message <- readTChan worldMessages
+        message <- readTChan worldChan
         return $ do
           let world' = execState (processMessage message) world
           updateWorld server { world = world' }
     else do
       return $ pure world
 
-processMessage :: ClientMessage -> WorldS ()
-processMessage (ClientMessage addr message) =
+processMessage :: ClientWorldMessage -> WorldS ()
+processMessage (ClientWorldMessage addr message) =
   case message of
     MoveLeft   -> updatePlayer addr movePlayerLeft
     MoveRight  -> updatePlayer addr movePlayerRight
@@ -60,4 +60,4 @@ processMessage (ClientMessage addr message) =
     _          -> pure ()
 
 sendUpdates :: Server -> IO ()
-sendUpdates server@Server{..} = atomically $ broadcast server (WorldUpdate world)
+sendUpdates server@Server{..} = atomically $ broadcast server (WorldMessage $ WorldUpdate world)

@@ -1,43 +1,25 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Common.GTypes (
-  ClientName,
+  ClientKey,
   HostName,
   Port,
-  Message(..),
-  ClientMessage(..),
+  Point,
+  Radius,
   ClientSettings(..)
   ) where
 
+import Graphics.Rendering.OpenGL (GLdouble)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 import Network.Socket (SockAddr)
 
-import Common.GObjects (World, Player)
 
-
-type ClientName = String
-
-type HostName = String
-
-type Port = String
-
-data Message = ConnectionRequest ClientSettings
-             | ConnectionAccepted
-             | ConnectionTerminated
-             | WorldUpdate World
-             | MoveLeft
-             | MoveRight
-             | MoveUp
-             | MoveDown
-             | Quit
-             | AddPlayer
-             | RemovePlayer
-             deriving (Show, Generic, Eq)
-
-data ClientMessage = ClientMessage SockAddr Message
-
-instance Serialize Message
+type ClientKey  = SockAddr
+type HostName   = String
+type Port       = String
+type Point      = (GLdouble, GLdouble)
+type Radius     = GLdouble
 
 data ClientSettings = ClientSettings {
   name  :: String,

@@ -15,14 +15,14 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Common.GObjects, Common.GTypes, Common.GTransform,
+  exposed-modules:     Common.GObjects, Common.GTypes, Common.GMessages, Common.GTransform,
                        GNetwork.Client, GNetwork.Server,
                        GState.Client, GState.Server,
                        GLogger.Client, GLogger.Server,
                        GMainLoop.Client, GMainLoop.Server,
                        GOpenGL.Client,
                        GInput.Client,
-                       GServices.Client
+                       GServices.Client, GServices.Server
   build-depends:       base >= 4.7 && < 5,
                        network,
                        bytestring,

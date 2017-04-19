@@ -22,7 +22,7 @@ updatePlayer :: SockAddr -> PlayerS () -> WorldS ()
 updatePlayer addr upFunc = getPlayer addr >>=
   \plyM -> case plyM of
     Nothing  -> return ()
-    Just ply' -> modify (\world -> world {players = Map.insert (clientAddr ply') (execState upFunc ply') (players world)})
+    Just ply' -> modify (\world -> world {players = Map.insert (clientKey ply') (execState upFunc ply') (players world)})
 
 addPlayer :: SockAddr -> WorldS ()
 addPlayer addr = modify (\world -> world {players = Map.insert addr newPlayer (players world)})

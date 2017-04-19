@@ -10,21 +10,19 @@ import Control.Monad.State (execState, modify)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.STM (atomically, isEmptyTChan, readTChan)
 import Control.Concurrent.STM.TVar (readTVar)
-import Text.Printf (printf)
 
 import Common.GObjects (World(..), WorldS)
-import Common.GTypes (Message(..))
+import Common.GMessages (WorldMessage(..))
 import GState.Client (ClientState(..))
-import GLogger.Client (logInfo)
 import GOpenGL.Client (drawWorld)
-import GInput.Client (processInputMessages)
+import GInput.Client (processWorldInput)
 
 
 mainLoop :: ClientState -> GLFW.Window -> IO ()
 mainLoop clientState@ClientState{..} window = do
   threadDelay 14000 -- 0.014 sec
 
-  processInputMessages clientState
+  processWorldInput clientState
   world' <- updateWorld clientState
   let clientState' = clientState { world = world' }
   drawWorld clientState' window
@@ -34,17 +32,17 @@ mainLoop clientState@ClientState{..} window = do
 
 updateWorld :: ClientState -> IO World
 updateWorld clientState@ClientState{..} = join $ atomically $ do
-  emptyChan <- isEmptyTChan worldMessages
+  emptyChan <- isEmptyTChan worldUpdateChan 
   if not emptyChan
     then do
-        message <- readTChan worldMessages
+        message <- readTChan worldUpdateChan
         return $ do
-          let world' = execState (processMessage message) world
+          let world' = execState (processWorldMessage message) world
           updateWorld clientState { world = world' }
     else do
       return $ pure world
 
-processMessage :: Message -> WorldS ()
-processMessage message =
+processWorldMessage :: WorldMessage -> WorldS ()
+processWorldMessage message =
   case message of
     WorldUpdate world -> modify (\_ -> world)

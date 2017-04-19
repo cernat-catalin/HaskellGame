@@ -1,27 +1,26 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module GServices.Client (
-  processServicesMessages
+  settingsService
   ) where
 
-import Control.Concurrent.STM (atomically, readTChan, writeTChan, isEmptyTChan)
+import Control.Concurrent.STM (atomically, readTChan)
 import Control.Concurrent.STM.TVar (modifyTVar')
 import Control.Monad (join)
-import Data.Serialize (decode, encode)
+import Data.Serialize (encode)
 
 import GState.Client (ClientState(..))
+import Common.GMessages (ServiceMessage(..))
 import GNetwork.Client (sendMessage)
-import Common.GTypes (Message(..))
 
 
-processServicesMessages :: ClientState -> IO ()
-processServicesMessages clientState@ClientState{..} = join $ atomically $ do
-  message <- readTChan servicesMessages
+settingsService :: ClientState -> IO ()
+settingsService clientState@ClientState{..} = join $ atomically $ do
+  message <- readTChan settingsSvcChan
   return $ do
     case message of
       Quit -> do
-        atomically $ modifyTVar' shouldQuit (const True)
         sendMessage clientState (encode message)
-        return ()
+        atomically $ modifyTVar' shouldQuit (const True)
       _    -> pure ()
-    processServicesMessages clientState
+    settingsService clientState

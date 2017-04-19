@@ -9,59 +9,62 @@ module GState.Server (
   removeClient
   ) where
 
-import qualified Network.Socket as NS
+import Network.Socket (Socket)
 import qualified Control.Concurrent.STM as STM
 import qualified Data.Map as Map
 
-import Common.GTypes (Message, ClientMessage, ClientSettings)
+import Common.GTypes (ClientKey, ClientSettings)
+import Common.GMessages (Message, ServiceMessage, ClientWorldMessage)
 import Common.GObjects (World(..), newWorld)
 
 
 data Client = Client {
-  clientAddr     :: NS.SockAddr,
-  -- inMessageChan  :: STM.TChan Message,
+  key            :: ClientKey,
+  serviceChan    :: STM.TChan ServiceMessage,
   outMessageChan :: STM.TChan Message,
-  clientSettings :: ClientSettings
+  settings       :: ClientSettings
 }
 
 instance Show Client where
-  show client = show (clientAddr client)
+  show client = show (key client) ++ show (settings client)
 
 data Server = Server {
-  clients         :: STM.TVar (Map.Map NS.SockAddr Client),
-  messageSocket   :: NS.Socket,
-  worldMessages   :: STM.TChan ClientMessage,
-  world           :: World
+  clients       :: STM.TVar (Map.Map ClientKey Client),
+  messageSocket :: Socket,
+  worldChan     :: STM.TChan ClientWorldMessage,
+  world         :: World
 }
 
-newClient :: NS.SockAddr -> ClientSettings -> STM.STM Client
-newClient addr settings = do
-  outMessageChan <- STM.newTChan
-  -- inMessageChan  <- STM.newTChan
-  return Client {
-    clientAddr     = addr,
-    -- inMessageChan  = inMessageChan,
-    outMessageChan = outMessageChan,
-    clientSettings = settings
-  }
-
-newServer :: NS.Socket -> IO Server
+newServer :: Socket -> IO Server
 newServer messageSocket = do
-  clients <- STM.newTVarIO Map.empty
-  worldMessages <- STM.newTChanIO
+  clients'   <- STM.newTVarIO Map.empty
+  worldChan' <- STM.newTChanIO
+
   return Server {
-    clients           = clients,
-    messageSocket     = messageSocket,
-    worldMessages     = worldMessages,
-    world             = newWorld
+    clients       = clients',
+    messageSocket = messageSocket,
+    worldChan     = worldChan',
+    world         = newWorld
   }
 
-addClient :: Server -> NS.SockAddr -> ClientSettings -> STM.STM Client
-addClient Server{..} addr settings = do
-  client <- newClient addr settings
-  STM.modifyTVar' clients $ Map.insert addr client
+newClient :: ClientKey -> ClientSettings -> STM.STM Client
+newClient key' settings' = do
+  serviceChan'    <- STM.newTChan
+  outMessageChan' <- STM.newTChan
+
+  return Client {
+    key            = key',
+    serviceChan    = serviceChan',
+    outMessageChan = outMessageChan',
+    settings       = settings'
+  }
+
+addClient :: Server -> ClientKey -> ClientSettings -> STM.STM Client
+addClient Server{..} key settings = do
+  client <- newClient key settings
+  STM.modifyTVar' clients $ Map.insert key client
   return client
 
-removeClient :: Server -> NS.SockAddr -> IO ()
-removeClient Server{..} addr = STM.atomically $ do
-  STM.modifyTVar' clients $ Map.delete addr
+removeClient :: Server -> ClientKey -> IO ()
+removeClient Server{..} key = STM.atomically $ do
+  STM.modifyTVar' clients $ Map.delete key

@@ -10,15 +10,18 @@ TODO list:
 - [x] Redo the architecture (HTA - will describe later)
 - [x] Basic game objects
 - [x] Baisc transformations for game objects
-- [ ] Client disconnects
-- [ ] Client arcihtecture
+- [x] Client disconnects
+- [ ] Client architecture
 - [x] OpenGL context on client
 - [x] OpenGL basic rendering
 - [x] GLFW input events
-- [ ] Handle disconnect from client (normal and forced)
+- [x] Handle disconnect from client (normal and forced)
+- [ ] Server services
 - [ ] Server main loop
 - [ ] Simple playable game
 - [ ] Replace map with an unordered map
-- [ ] Separate messages
 - [ ] Lenses
+- [ ] Separate messages
 - [ ] Code review
+- [ ] Review messages structure
+- [ ] Review pure STM functions like addClient

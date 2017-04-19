@@ -13,31 +13,28 @@ module Common.GObjects (
   newWorld
   ) where
 
-import Graphics.Rendering.OpenGL (GLdouble)
 import GHC.Generics (Generic)
 import Data.Serialize (Serialize)
 import Network.Socket (SockAddr(..), PortNumber(..))
 import Control.Monad.State (State)
 import qualified Data.Map as Map
 
+import Common.GTypes (ClientKey, Point, Radius)
 
-type Point = (GLdouble, GLdouble)
-
-type Radius = GLdouble
 
 data Circle = Circle {
   center :: Point,
   radius :: Radius
-} deriving (Show, Generic, Eq)
+} deriving (Show, Eq, Generic)
 
 type CircleS = State Circle
 
 instance Serialize Circle
 
 data Player = Player {
-  clientAddr :: SockAddr,
-  circle     :: Circle
-} deriving (Show, Generic, Eq)
+  clientKey :: ClientKey,
+  circle    :: Circle
+} deriving (Show, Eq, Generic)
 
 type PlayerS = State Player
 
@@ -53,8 +50,8 @@ instance Serialize SockAddr
 instance Serialize Player
 
 data World = World {
-  players :: Map.Map SockAddr Player
-} deriving (Show, Generic, Eq)
+  players :: Map.Map ClientKey Player
+} deriving (Show, Eq, Generic)
 
 type WorldS = State World
 

@@ -17,7 +17,8 @@ import Data.Serialize (decode, encode)
 import Text.Printf (printf)
 
 import GState.Server (Server(..), Client(..), addClient, removeClient)
-import Common.GTypes (Port, Message(..), ClientMessage(..), ClientSettings)
+import Common.GTypes (Port, ClientSettings(..))
+import Common.GMessages (Message(..), ServiceMessage(..), WorldMessage(..), ClientWorldMessage(..))
 import GLogger.Server (logInfo, logError)
 
 
@@ -40,20 +41,34 @@ masterReceiver server@Server{..} = forever $ do
     Right message -> do
       logInfo (printf "Receiver message %s from client %s" (show message) (show addr))
       case message of
-        ConnectionRequest settings -> initialSetup server addr settings
-        Quit                       -> do
-          logInfo (printf "Client %s disconnected" (show addr))
-          removeClient server addr
-          atomically $ writeTChan worldMessages (ClientMessage addr RemovePlayer)
-        _                          -> join $ atomically $ do
+        WorldMessage worldMessage -> join $ atomically $ do
           clientMap <- readTVar clients
           let clientM = Map.lookup addr clientMap
           case clientM of
             Just _ -> do
-              writeTChan worldMessages (ClientMessage addr message)
+              writeTChan worldChan (ClientWorldMessage addr worldMessage)
               return $ pure ()
             Nothing     -> return $ do
                              logError (printf "Non connection request message from unconnected client %s : %s" (show addr) (show recv))
+        -- TODO check if client is in list (make a general check for both service and world messages)
+        ServiceMessage serviceMessage -> join $ atomically $ do
+          case serviceMessage of
+            ConnectionRequest settings -> undefined
+            _                          -> do
+              clientMap <- readTVar clients
+              let clientM = Map.lookup addr clientMap
+              case clientM of
+                Just client -> do
+                  writeTChan (serviceChan client) serviceMessage
+                  return $ pure ()
+                Nothing     -> return $ do
+                                logError (printf "Non connection request message from unconnected client %s : %s" (show addr) (show recv))
+
+        -- ConnectionRequest settings -> initialSetup server addr settings
+        -- Quit                       -> do
+        --   logInfo (printf "Client %s disconnected" (show addr))
+        --   removeClient server addr
+        --   atomically $ writeTChan worldMessages (ClientMessage addr RemovePlayer)
     Left _        -> logError (printf "From '%s' received non decodable message %s" (show addr) (show recv))
  where
   maxBytes = 1024
@@ -71,8 +86,8 @@ clientSender :: Server -> Client -> IO ()
 clientSender server@Server{..} client@Client{..} = join $ atomically $ do
   message <- readTChan outMessageChan
   return $ do
-    NSB.sendTo messageSocket (encode message) clientAddr
-    when (message /= ConnectionTerminated) $ clientSender server client
+    NSB.sendTo messageSocket (encode message) key
+    when (message /= (ServiceMessage Quit)) $ clientSender server client
 
 initialSetup :: Server -> NS.SockAddr -> ClientSettings -> IO ()
 initialSetup server@Server{..} addr settings = join $ atomically $ do
@@ -85,7 +100,7 @@ initialSetup server@Server{..} addr settings = join $ atomically $ do
       return $ do
         logInfo (printf "Client %s connected" (show addr))
         -- forkIO (clientReceiver client)
-        atomically $ writeTChan worldMessages (ClientMessage addr AddPlayer)
+        atomically $ writeTChan worldChan (ClientWorldMessage addr AddPlayer)
         forkIO (clientSender server client)
         return ()
 
