@@ -40,7 +40,7 @@ drawWorld clientState window = do
   GL.matrixMode GL.$= GL.Projection
   GL.loadIdentity
   GL.ortho (negate ratio) ratio (negate 1.0) 1.0 1.0 (negate 1.0)
-  logInfo (printf "draw : %s" (show $ world clientState))
+  -- logInfo (printf "draw : %s" (show $ world clientState))
   mapM_ (\player -> drawCircle (circle player)) (players $ world clientState)
   GLFW.swapBuffers $ window
   GLFW.pollEvents

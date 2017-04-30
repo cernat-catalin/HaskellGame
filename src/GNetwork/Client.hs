@@ -16,7 +16,7 @@ import Data.Serialize (decode, encode)
 import Text.Printf (printf)
 
 import Common.GTypes (HostName, Port, ClientSettings(..))
-import Common.GMessages (Message(..), WorldMessage(..), ServiceMessage(..))
+import GMessages.Common (Message(..), WorldMessage(..), ServiceMessage(..), ConnectionMessage(..))
 import GState.Client (ClientState(..), ConnHandle(..))
 import GLogger.Client (logError)
 
@@ -47,6 +47,7 @@ receiver ClientState{..} = forever $ do
             _             -> pure ()
         ServiceMessage serviceMessage ->
           case serviceMessage of
+            PingMessage pingMessage -> atomically $ writeTChan pingSvcChan pingMessage
             _             -> pure ()
     Left _        -> logError (printf "Received non decodable message '%s'" (show recv))
  where
@@ -56,5 +57,5 @@ receiver ClientState{..} = forever $ do
 initialSetup :: ClientState -> IO ()
 initialSetup clientState = do
   let settings = ClientSettings {name = "Levi", color = "Green"}
-  sendMessage clientState (encode $ ConnectionRequest settings)
+  sendMessage clientState (encode $ ServiceMessage $ ConnectionMessage $ ConnectionRequest settings)
   return ()

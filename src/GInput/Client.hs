@@ -12,9 +12,11 @@ import qualified Graphics.UI.GLFW as GLFW
 
 import GState.Client (ClientState(..))
 import GNetwork.Client (sendMessage)
-import Common.GMessages (ServiceMessage(..), WorldMessage(..))
+import GMessages.Common (Message(..), ServiceMessage(..), WorldMessage(..), PingMessage(..))
+import GMessages.Client (SettingsMessage(..))
 
 
+-- TODO client services (quit)
 keyCallback :: ClientState -> GLFW.KeyCallback
 keyCallback ClientState{..} _ key _  keyState _ =
   case keyState of
@@ -25,6 +27,7 @@ keyCallback ClientState{..} _ key _  keyState _ =
         GLFW.Key'W      -> atomically $ writeTChan worldInputChan MoveUp
         GLFW.Key'S      -> atomically $ writeTChan worldInputChan MoveDown
         GLFW.Key'Escape -> atomically $ writeTChan settingsSvcChan Quit
+        GLFW.Key'P      -> atomically $ writeTChan pingSvcChan PingRequest
         _               -> return ()
     _                     -> return ()
 
@@ -35,7 +38,7 @@ processWorldInput clientState@ClientState{..} = join $ atomically $ do
     then do
         message <- readTChan worldInputChan
         return $ do
-          sendMessage clientState (encode message)
+          sendMessage clientState (encode $ WorldMessage message)
           processWorldInput clientState
     else do
       return $ pure ()

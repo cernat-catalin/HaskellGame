@@ -7,7 +7,8 @@ module GState.Client (
 import Network.Socket (Socket, SockAddr)
 import Control.Concurrent.STM (TChan, TVar, newTChanIO, newTVarIO)
 
-import Common.GMessages (WorldMessage, ServiceMessage)
+import GMessages.Common (WorldMessage, ServiceMessage, PingMessage)
+import GMessages.Client (SettingsMessage)
 import Common.GObjects (World, newWorld)
 
 
@@ -20,7 +21,8 @@ data ClientState = ClientState {
   serverHandle    :: ConnHandle,
   worldUpdateChan :: TChan WorldMessage,
   worldInputChan  :: TChan WorldMessage,
-  settingsSvcChan :: TChan ServiceMessage,
+  settingsSvcChan :: TChan SettingsMessage,
+  pingSvcChan     :: TChan PingMessage,
   world           :: World,
   shouldQuit      :: TVar Bool
 }
@@ -31,12 +33,14 @@ newClientState connHandle = do
   worldInputChan'  <- newTChanIO
   shouldQuit'      <- newTVarIO False
   settingsSvcChan' <- newTChanIO
+  pingSvcChan'     <- newTChanIO
 
   return ClientState {
     serverHandle    = connHandle,
     worldUpdateChan = worldUpdateChan',
     worldInputChan  = worldInputChan',
     settingsSvcChan = settingsSvcChan',
+    pingSvcChan     = pingSvcChan',
     world           = newWorld,
     shouldQuit      = shouldQuit'
   }

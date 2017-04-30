@@ -12,7 +12,7 @@ import Control.Concurrent.STM (atomically, isEmptyTChan, readTChan)
 import Control.Concurrent.STM.TVar (readTVar)
 
 import Common.GObjects (World(..), WorldS)
-import Common.GMessages (WorldMessage(..))
+import GMessages.Common (WorldMessage(..))
 import GState.Client (ClientState(..))
 import GOpenGL.Client (drawWorld)
 import GInput.Client (processWorldInput)

@@ -18,11 +18,11 @@ import GLogger.Client (initLogger, cleanLog, logInfo, logError)
 import Common.GObjects (Circle(..), Player(..), World(..))
 import GMainLoop.Client (mainLoop)
 import GOpenGL.Client (withOpenGL)
-import GServices.Client (settingsService)
+import GServices.Client (settingsService, pingService)
 import System.Posix.Signals (installHandler, keyboardSignal, Handler(..))
 import qualified Control.Exception as E
 import Data.Serialize (decode, encode)
-import Common.GMessages (ServiceMessage(..))
+import GMessages.Common (Message(..), ServiceMessage(..), ConnectionMessage(..))
 
 main :: IO ()
 main = withSocketsDo $ do
@@ -42,11 +42,12 @@ main = withSocketsDo $ do
   -- Found this: GLFW doesn't work well with GHC threads, forkIO or threadDelay. So avoid them if you can.
   forkIO (receiver clientState)
   forkIO (settingsService clientState)
+  forkIO (pingService clientState)
   tid <- myThreadId
   installHandler keyboardSignal (Catch $ endLife clientState tid) Nothing
   withOpenGL clientState (mainLoop clientState)
 
 endLife :: ClientState -> ThreadId -> IO ()
 endLife clientState@ClientState{..} id = do
-  sendMessage clientState (encode Quit)
+  sendMessage clientState (encode $ ServiceMessage $ ConnectionMessage $ ConnectionTerminated)
   E.throwTo id ExitSuccess

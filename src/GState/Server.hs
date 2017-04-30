@@ -6,7 +6,8 @@ module GState.Server (
   newClient,
   newServer,
   addClient,
-  removeClient
+  removeClient,
+  lookupClient
   ) where
 
 import Network.Socket (Socket)
@@ -14,7 +15,8 @@ import qualified Control.Concurrent.STM as STM
 import qualified Data.Map as Map
 
 import Common.GTypes (ClientKey, ClientSettings)
-import Common.GMessages (Message, ServiceMessage, ClientWorldMessage)
+import GMessages.Common (Message, ServiceMessage)
+import GMessages.Server (KeyConnectionMessage, KeyWorldMessage)
 import Common.GObjects (World(..), newWorld)
 
 
@@ -29,22 +31,25 @@ instance Show Client where
   show client = show (key client) ++ show (settings client)
 
 data Server = Server {
-  clients       :: STM.TVar (Map.Map ClientKey Client),
-  messageSocket :: Socket,
-  worldChan     :: STM.TChan ClientWorldMessage,
-  world         :: World
+  clients        :: STM.TVar (Map.Map ClientKey Client),
+  messageSocket  :: Socket,
+  worldChan      :: STM.TChan KeyWorldMessage,
+  connectionChan :: STM.TChan KeyConnectionMessage,
+  world          :: World
 }
 
 newServer :: Socket -> IO Server
 newServer messageSocket = do
-  clients'   <- STM.newTVarIO Map.empty
-  worldChan' <- STM.newTChanIO
+  clients'        <- STM.newTVarIO Map.empty
+  worldChan'      <- STM.newTChanIO
+  connectionChan' <- STM.newTChanIO
 
   return Server {
-    clients       = clients',
-    messageSocket = messageSocket,
-    worldChan     = worldChan',
-    world         = newWorld
+    clients        = clients',
+    messageSocket  = messageSocket,
+    worldChan      = worldChan',
+    connectionChan = connectionChan',
+    world          = newWorld
   }
 
 newClient :: ClientKey -> ClientSettings -> STM.STM Client
@@ -65,6 +70,11 @@ addClient Server{..} key settings = do
   STM.modifyTVar' clients $ Map.insert key client
   return client
 
-removeClient :: Server -> ClientKey -> IO ()
-removeClient Server{..} key = STM.atomically $ do
+removeClient :: Server -> ClientKey -> STM.STM ()
+removeClient Server{..} key = do
   STM.modifyTVar' clients $ Map.delete key
+
+lookupClient :: Server -> ClientKey -> STM.STM (Maybe Client)
+lookupClient Server{..} key = do
+  clientMap <- STM.readTVar clients
+  return (Map.lookup key clientMap)

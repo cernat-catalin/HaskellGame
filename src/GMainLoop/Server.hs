@@ -12,7 +12,8 @@ import Text.Printf (printf)
 
 import GState.Server (Server(..))
 import GNetwork.Server (broadcast)
-import Common.GMessages (Message(..), WorldMessage(..), ClientWorldMessage(..))
+import GMessages.Common (Message(..), WorldMessage(..))
+import GMessages.Server (KeyWorldMessage(..))
 import Common.GObjects (World(..), WorldS)
 import Common.GTransform (getPlayer, movePlayerLeft, movePlayerRight, movePlayerUp, movePlayerDown, updatePlayer, addPlayer, removePlayer)
 import GLogger.Server (logInfo)
@@ -48,15 +49,15 @@ updateWorld server@Server{..} = join $ atomically $ do
     else do
       return $ pure world
 
-processMessage :: ClientWorldMessage -> WorldS ()
-processMessage (ClientWorldMessage addr message) =
+processMessage :: KeyWorldMessage -> WorldS ()
+processMessage (KeyWorldMessage key message) =
   case message of
-    MoveLeft   -> updatePlayer addr movePlayerLeft
-    MoveRight  -> updatePlayer addr movePlayerRight
-    MoveUp     -> updatePlayer addr movePlayerUp
-    MoveDown   -> updatePlayer addr movePlayerDown
-    AddPlayer  -> addPlayer addr
-    RemovePlayer -> removePlayer addr
+    MoveLeft   -> updatePlayer key movePlayerLeft
+    MoveRight  -> updatePlayer key movePlayerRight
+    MoveUp     -> updatePlayer key movePlayerUp
+    MoveDown   -> updatePlayer key movePlayerDown
+    AddPlayer  -> addPlayer key
+    RemovePlayer -> removePlayer key
     _          -> pure ()
 
 sendUpdates :: Server -> IO ()

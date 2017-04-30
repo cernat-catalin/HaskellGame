@@ -10,6 +10,7 @@ import GState.Server (newServer)
 import GNetwork.Server (listenTo, masterReceiver)
 import GLogger.Server (initLogger, cleanLog, logInfo)
 import GMainLoop.Server (mainLoop)
+import GServices.Server (connectionService)
 
 
 main :: IO ()
@@ -22,6 +23,7 @@ main = withSocketsDo $ do
   logInfo (printf "Listening on port %s" port)
 
   forkIO (masterReceiver server)
+  forkIO (connectionService server)
   mainLoop server
  where
   port = "10541"
