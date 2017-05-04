@@ -7,13 +7,11 @@ module GInput.Client (
 
 import Control.Concurrent.STM (atomically, readTChan, writeTChan, isEmptyTChan)
 import Control.Monad (join)
-import Data.Serialize (encode)
 import qualified Graphics.UI.GLFW as GLFW
 
 import GState.Client (ClientState(..))
-import GNetwork.Client (sendMessage)
-import GMessages.Common (Message(..), ServiceMessage(..), WorldMessage(..), PingMessage(..))
-import GMessages.Client (SettingsMessage(..))
+import GMessages.Client (SettingsMessage(..), WorldInputMessage(..), PingMessage(..))
+
 
 
 -- TODO client services (quit)
@@ -36,9 +34,9 @@ processWorldInput clientState@ClientState{..} = join $ atomically $ do
   emptyChan <- isEmptyTChan worldInputChan
   if not emptyChan
     then do
-        message <- readTChan worldInputChan
+        _ <- readTChan worldInputChan
         return $ do
-          sendMessage clientState (encode $ WorldMessage message)
+          -- sendMessage clientState (encode $ WorldMessage message)
           processWorldInput clientState
     else do
       return $ pure ()

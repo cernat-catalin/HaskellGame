@@ -13,7 +13,7 @@ import Text.Printf (printf)
 
 import Common.GObjects (Circle(..), Player(..), World(..))
 import GState.Client (ClientState(..))
-import GLogger.Client (logError, logInfo)
+import GLogger.Client (logError)
 import GInput.Client (keyCallback)
 
 

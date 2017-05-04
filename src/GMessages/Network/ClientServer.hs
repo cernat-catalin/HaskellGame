@@ -1,55 +1,40 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module GMessages.Common (
+module GMessages.Network.ClientServer (
   ConnectionMessage(..),
   PingMessage(..),
-  ServiceMessage(..),
   WorldMessage(..),
+  ServiceMessage(..),
   Message(..)
   ) where
 
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 
-import Common.GTypes (ClientSettings, ClientKey)
-import Common.GObjects (World)
+import Common.GTypes (ClientSettings, Point)
+
 
 
 data ConnectionMessage = ConnectionRequest ClientSettings
                        | ConnectionTerminated
                        deriving (Show, Eq, Generic)
 
-instance Serialize ConnectionMessage
-
-
 data PingMessage = PingRequest
-                 | PingResponse String
                  deriving (Show, Eq, Generic)
 
-instance Serialize PingMessage
-
+data WorldMessage = PositionUpdate Point
+                  deriving (Show, Eq, Generic)
 
 data ServiceMessage = ConnectionMessage ConnectionMessage
                     | PingMessage PingMessage
                     deriving (Show, Eq, Generic)
 
-instance Serialize ServiceMessage
-
-
-data WorldMessage = WorldUpdate World
-                  | MoveLeft
-                  | MoveRight
-                  | MoveUp
-                  | MoveDown
-                  | AddPlayer
-                  | RemovePlayer
-                  deriving (Show, Eq, Generic)
-
-instance Serialize WorldMessage
-
-
 data Message = WorldMessage WorldMessage
              | ServiceMessage ServiceMessage
              deriving (Show, Eq, Generic)
 
+instance Serialize ConnectionMessage
+instance Serialize PingMessage
+instance Serialize WorldMessage
+instance Serialize ServiceMessage
 instance Serialize Message

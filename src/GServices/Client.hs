@@ -12,8 +12,8 @@ import Data.Serialize (encode)
 import Text.Printf (printf)
 
 import GState.Client (ClientState(..))
-import GMessages.Common (Message(..), ServiceMessage(..), ConnectionMessage(..), PingMessage(..))
-import GMessages.Client (SettingsMessage(..))
+import GMessages.Network.ClientServer as CS (Message(..), ServiceMessage(..), ConnectionMessage(..), PingMessage(..))
+import GMessages.Client as C (SettingsMessage(..), PingMessage(..))
 import GNetwork.Client (sendMessage)
 import GLogger.Client (logInfo)
 
@@ -33,8 +33,8 @@ pingService clientState@ClientState{..} = forever $ join $ atomically $ do
   message <- readTChan pingSvcChan
   return $ do
     case message of
-      PingRequest -> do
-        sendMessage clientState (encode $ ServiceMessage $ PingMessage PingRequest)
+      C.PingRequest -> do
+        sendMessage clientState (encode $ ServiceMessage $ PingMessage CS.PingRequest)
         return ()
       PingResponse ping -> do
         logInfo (printf "Ping: %s" ping)

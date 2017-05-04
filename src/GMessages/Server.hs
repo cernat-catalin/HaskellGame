@@ -1,14 +1,25 @@
 module GMessages.Server (
-  KeyConnectionMessage(..),
-  KeyWorldMessage(..)
+  ConnectionMessage(..),
+  PingMessage(..),
+  WorldMessage(..),
+  ServiceMessage(..)
   ) where
 
-import Common.GTypes (ClientKey)
-import GMessages.Common (ConnectionMessage(..), WorldMessage(..))
+import Common.GTypes (ClientKey, Point, ClientSettings(..))
 
 
-data KeyConnectionMessage = KeyConnectionMessage ClientKey ConnectionMessage
-                          deriving (Show, Eq)
 
-data KeyWorldMessage = KeyWorldMessage ClientKey WorldMessage
+data ConnectionMessage = ConnectionRequest ClientKey ClientSettings
+                       | ConnectionTerminated ClientKey
                        deriving (Show, Eq)
+
+data PingMessage = PingRequest ClientKey
+                 deriving (Show, Eq)
+
+data WorldMessage = PositionUpdate ClientKey Point
+                  | AddPlayer ClientKey
+                  | RemovePlayer ClientKey
+
+data ServiceMessage = ConnectionMessage ConnectionMessage
+                    | PingMessage PingMessage
+                    deriving (Show, Eq)

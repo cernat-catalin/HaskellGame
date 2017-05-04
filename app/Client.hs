@@ -12,17 +12,18 @@ import Control.Monad (forM_)
 import qualified Graphics.UI.GLFW as GLFW
 import qualified Graphics.Rendering.OpenGL as GL
 
-import GNetwork.Client (connectTo, receiver, initialSetup, sendMessage)
+import GNetwork.Client (connectTo, receiver, sendMessage)
 import GState.Client (ClientState(..), newClientState)
 import GLogger.Client (initLogger, cleanLog, logInfo, logError)
 import Common.GObjects (Circle(..), Player(..), World(..))
+import Common.GTypes (ClientSettings(..))
 import GMainLoop.Client (mainLoop)
+import GMessages.Network.ClientServer (Message(..), ServiceMessage(..), ConnectionMessage(..))
 import GOpenGL.Client (withOpenGL)
 import GServices.Client (settingsService, pingService)
 import System.Posix.Signals (installHandler, keyboardSignal, Handler(..))
 import qualified Control.Exception as E
 import Data.Serialize (decode, encode)
-import GMessages.Common (Message(..), ServiceMessage(..), ConnectionMessage(..))
 
 main :: IO ()
 main = withSocketsDo $ do
@@ -51,3 +52,10 @@ endLife :: ClientState -> ThreadId -> IO ()
 endLife clientState@ClientState{..} id = do
   sendMessage clientState (encode $ ServiceMessage $ ConnectionMessage $ ConnectionTerminated)
   E.throwTo id ExitSuccess
+
+-- TODO: refactor this
+initialSetup :: ClientState -> IO ()
+initialSetup clientState = do
+  let settings = ClientSettings {name = "Levi", color = "Green"}
+  sendMessage clientState (encode $ ServiceMessage $ ConnectionMessage $ ConnectionRequest settings)
+  return ()

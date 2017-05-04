@@ -15,9 +15,10 @@ import qualified Control.Concurrent.STM as STM
 import qualified Data.Map as Map
 
 import Common.GTypes (ClientKey, ClientSettings)
-import GMessages.Common (Message, ServiceMessage)
-import GMessages.Server (KeyConnectionMessage, KeyWorldMessage)
+import GMessages.Network.ServerClient (Message)
+import GMessages.Server (WorldMessage, ConnectionMessage, ServiceMessage)
 import Common.GObjects (World(..), newWorld)
+
 
 
 data Client = Client {
@@ -33,8 +34,8 @@ instance Show Client where
 data Server = Server {
   clients        :: STM.TVar (Map.Map ClientKey Client),
   messageSocket  :: Socket,
-  worldChan      :: STM.TChan KeyWorldMessage,
-  connectionChan :: STM.TChan KeyConnectionMessage,
+  worldChan      :: STM.TChan WorldMessage,
+  connectionChan :: STM.TChan ConnectionMessage,
   world          :: World
 }
 

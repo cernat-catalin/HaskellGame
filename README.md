@@ -17,12 +17,14 @@ TODO list:
 - [x] GLFW input events
 - [x] Handle disconnect from client (normal and forced)
 - [x] Server services
+- [x] Separate messages
 - [ ] Review messages structure (so that patterns are exhaustive both on server and client)
+- [ ] Double channel stm for certain services
+- [ ] Separate files in the Common folder
+- [ ] Code review
 - [ ] Server main loop
 - [ ] Simple playable game
 - [ ] Replace map with an unordered map
 - [ ] Lenses
-- [x] Separate messages
 - [ ] Standardize log and error messages
-- [ ] Code review
-- [ ] Review pure STM functions like addClient
+- [ ] Code review (also review pure STM functions like addClient)

@@ -11,18 +11,19 @@ module GNetwork.Server (
 import qualified Network.Socket as NS
 import qualified Network.Socket.ByteString as NSB
 import qualified Data.Map as Map
-import Control.Concurrent (forkIO)
-import Control.Concurrent.STM (STM, TChan, atomically, readTChan, readTVar, writeTChan)
-import Control.Monad (forever, join, when)
+import Control.Concurrent.STM (STM, atomically, readTChan, readTVar, writeTChan)
+import Control.Monad (forever, join)
 import Data.Serialize (decode, encode)
 import Text.Printf (printf)
 
-import GState.Server (Server(..), Client(..), addClient, removeClient, lookupClient)
-import Common.GTypes (Port, ClientKey, ClientSettings(..))
+import GState.Server (Server(..), Client(..), lookupClient)
+import Common.GTypes (Port, ClientKey)
+import GLogger.Server (logError)
+import GMessages.Network.Converter (convertWithKey)
+import GMessages.Network.ClientServer as CS (Message(..)) 
+import GMessages.Network.ServerClient as SC (Message)
+import GMessages.Server as S (ServiceMessage(..))
 
-import GMessages.Common (Message(..), WorldMessage(..), ServiceMessage(..), ConnectionMessage(..))
-import GMessages.Server (KeyConnectionMessage(..), KeyWorldMessage(..))
-import GLogger.Server (logInfo, logError)
 
 
 listenTo :: Port -> IO NS.Socket
@@ -46,34 +47,36 @@ masterReceiver server@Server{..} = forever $ do
 
     Right message -> do
       case message of
-        WorldMessage worldMessage     -> atomically $ writeTChan worldChan (KeyWorldMessage key worldMessage)
-        ServiceMessage serviceMessage ->
-          case serviceMessage of
-            ConnectionMessage connectionMessage -> atomically $ writeTChan connectionChan (KeyConnectionMessage key connectionMessage)
-            _                                   -> join $ atomically $ do
-              clientM <- lookupClient server key
-              case clientM of
-                Just client -> do
-                  writeTChan (serviceChan client) serviceMessage
-                  return $ pure ()
-                Nothing     -> return $ logError (printf "Non connection request message from unconnected client %s : %s" (show key) (show recv))
+        WorldMessage worldMessage     -> atomically $ writeTChan worldChan (convertWithKey worldMessage key)
+        ServiceMessage serviceMessage -> case (convertWithKey serviceMessage key) of
+          S.ConnectionMessage connectionMessage -> atomically $ writeTChan connectionChan connectionMessage
+          _ -> writeToServiceChan server key (convertWithKey serviceMessage key)
  where
   maxBytes = 1024
 
 -- TODO: use async race (I think) to create a sibling relationship between clientSender and clientReceiver
 
 clientSender :: Server -> Client -> IO ()
-clientSender server@Server{..} client@Client{..} = forever $ join $ atomically $ do
+clientSender Server{..} Client{..} = forever $ join $ atomically $ do
   message <- readTChan outMessageChan
   return $ do
     NSB.sendTo messageSocket (encode message) key
 
-sendMessage :: Client -> Message -> STM ()
+sendMessage :: Client -> SC.Message -> STM ()
 sendMessage Client{..} msg =
   writeTChan outMessageChan msg
 
 -- TODO research unbounded STM
-broadcast :: Server -> Message -> STM ()
+broadcast :: Server -> SC.Message -> STM ()
 broadcast Server{..} msg = do
   clientMap <- readTVar clients
   mapM_ (\client -> sendMessage client msg) (Map.elems clientMap)
+
+writeToServiceChan :: Server -> ClientKey -> S.ServiceMessage -> IO ()
+writeToServiceChan server@Server{..} key message = join $ atomically $ do
+  clientM <- lookupClient server key
+  case clientM of
+    Just client -> do
+      writeTChan (serviceChan client) message
+      return $ pure ()
+    Nothing     -> return $ logError (printf "Non connection request message from unconnected client %s : %s" (show key) (show message))

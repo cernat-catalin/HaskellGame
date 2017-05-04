@@ -3,8 +3,7 @@
 module GNetwork.Client (
   connectTo,
   sendMessage,
-  receiver,
-  initialSetup
+  receiver
   ) where
 
 import qualified Network.Socket as NS
@@ -16,7 +15,9 @@ import Data.Serialize (decode, encode)
 import Text.Printf (printf)
 
 import Common.GTypes (HostName, Port, ClientSettings(..))
-import GMessages.Common (Message(..), WorldMessage(..), ServiceMessage(..), ConnectionMessage(..))
+import GMessages.Network.ServerClient (Message(..), ServiceMessage(..), WorldMessage(..))
+import qualified GMessages.Client as C
+import GMessages.Network.Converter (convert)
 import GState.Client (ClientState(..), ConnHandle(..))
 import GLogger.Client (logError)
 
@@ -35,7 +36,7 @@ sendMessage ClientState{..} message = do
   NSB.sendTo sock message addr 
 
 receiver :: ClientState -> IO ()
-receiver ClientState{..} = forever $ do
+receiver clientState@ClientState{..} = forever $ do
   recv <- NSB.recv (connSocket serverHandle) maxBytes
   let eitherMessage = decode recv
   case eitherMessage of
@@ -43,19 +44,13 @@ receiver ClientState{..} = forever $ do
       case message of
         WorldMessage worldMessage    ->
           case worldMessage of
-            WorldUpdate _ -> atomically $ writeTChan worldUpdateChan worldMessage
-            _             -> pure ()
-        ServiceMessage serviceMessage ->
-          case serviceMessage of
-            PingMessage pingMessage -> atomically $ writeTChan pingSvcChan pingMessage
-            _             -> pure ()
+            WorldUpdate _ -> atomically $ writeTChan worldUpdateChan (convert worldMessage)
+        ServiceMessage serviceMessage -> messageSplitter clientState (convert serviceMessage)
     Left _        -> logError (printf "Received non decodable message '%s'" (show recv))
  where
   maxBytes = 1024
 
--- TODO: refactor this
-initialSetup :: ClientState -> IO ()
-initialSetup clientState = do
-  let settings = ClientSettings {name = "Levi", color = "Green"}
-  sendMessage clientState (encode $ ServiceMessage $ ConnectionMessage $ ConnectionRequest settings)
-  return ()
+messageSplitter :: ClientState -> C.ServiceMessage -> IO ()
+messageSplitter ClientState{..} message = atomically $ do
+  case message of
+    C.PingMessage pingMessage -> writeTChan pingSvcChan pingMessage
