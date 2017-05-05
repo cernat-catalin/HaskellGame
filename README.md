@@ -18,8 +18,8 @@ TODO list:
 - [x] Handle disconnect from client (normal and forced)
 - [x] Server services
 - [x] Separate messages
-- [ ] Review messages structure (so that patterns are exhaustive both on server and client)
-- [ ] Double channel stm for certain services
+- [x] Review messages structure (so that patterns are exhaustive both on server and client)
+- [ ] Handle client input process
 - [ ] Separate files in the Common folder
 - [ ] Code review
 - [ ] Server main loop

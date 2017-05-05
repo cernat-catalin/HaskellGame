@@ -16,7 +16,7 @@ import qualified Data.Map as Map
 
 import Common.GTypes (ClientKey, ClientSettings)
 import GMessages.Network.ServerClient (Message)
-import GMessages.Server (WorldMessage, ConnectionMessage, ServiceMessage)
+import GMessages.Server (KeyMessage, WorldMessage, ConnectionMessage, ServiceMessage)
 import Common.GObjects (World(..), newWorld)
 
 
@@ -34,8 +34,8 @@ instance Show Client where
 data Server = Server {
   clients        :: STM.TVar (Map.Map ClientKey Client),
   messageSocket  :: Socket,
-  worldChan      :: STM.TChan WorldMessage,
-  connectionChan :: STM.TChan ConnectionMessage,
+  worldChan      :: STM.TChan (KeyMessage WorldMessage),
+  connectionChan :: STM.TChan (KeyMessage ConnectionMessage),
   world          :: World
 }
 

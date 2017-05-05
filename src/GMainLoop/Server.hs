@@ -4,19 +4,17 @@ module GMainLoop.Server (
   mainLoop
   ) where
 
-import Control.Monad (join, unless)
+import Control.Monad (join)
 import Control.Monad.State (execState)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.STM (atomically, isEmptyTChan, readTChan)
-import Text.Printf (printf)
 
 import GState.Server (Server(..))
 import GNetwork.Server (broadcast)
-import GMessages.Server as S (WorldMessage(..))
+import GMessages.Server as S (KeyMessage(..), WorldMessage(..))
 import GMessages.Network.ServerClient as SC (Message(..), WorldMessage(..))
 import Common.GObjects (World(..), WorldS)
-import Common.GTransform (getPlayer, movePlayerLeft, movePlayerRight, movePlayerUp, movePlayerDown, updatePlayer, addPlayer, removePlayer)
-import GLogger.Server (logInfo)
+import Common.GTransform (addPlayer, removePlayer)
 
 
 mainLoop :: Server -> IO ()
@@ -49,15 +47,11 @@ updateWorld server@Server{..} = join $ atomically $ do
     else do
       return $ pure world
 
-processMessage :: S.WorldMessage -> WorldS ()
-processMessage message =
+processMessage :: (S.KeyMessage S.WorldMessage) -> WorldS ()
+processMessage (S.KeyMessage key message) =
   case message of
-    -- MoveLeft   -> updatePlayer key movePlayerLeft
-    -- MoveRight  -> updatePlayer key movePlayerRight
-    -- MoveUp     -> updatePlayer key movePlayerUp
-    -- MoveDown   -> updatePlayer key movePlayerDown
-    AddPlayer key -> addPlayer key
-    RemovePlayer key -> removePlayer key
+    AddPlayer -> addPlayer key
+    RemovePlayer -> removePlayer key
     _          -> pure ()
 
 sendUpdates :: Server -> IO ()

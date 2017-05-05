@@ -25,6 +25,7 @@ library
                        GOpenGL.Client,
                        GInput.Client,
                        GServices.Client, GServices.Server
+                       GFunc.Client.Setup
   build-depends:       base >= 4.7 && < 5,
                        network,
                        bytestring,
@@ -36,7 +37,8 @@ library
                        async,
                        containers,
                        lens,
-                       hslogger
+                       hslogger,
+                       unix
   default-language:    Haskell2010
 
 executable Server
@@ -74,8 +76,7 @@ executable Client
                        async,
                        containers,
                        lens,
-                       hslogger,
-                       unix
+                       hslogger
   default-language:    Haskell2010
 
 test-suite HaskellGame-test

@@ -19,10 +19,9 @@ import Text.Printf (printf)
 import GState.Server (Server(..), Client(..), lookupClient)
 import Common.GTypes (Port, ClientKey)
 import GLogger.Server (logError)
-import GMessages.Network.Converter (convertWithKey)
-import GMessages.Network.ClientServer as CS (Message(..)) 
-import GMessages.Network.ServerClient as SC (Message)
-import GMessages.Server as S (ServiceMessage(..))
+import GMessages.Network.Converter (convert, convertWithKey)
+import GMessages.Network.ClientServer as CS
+import GMessages.Network.ServerClient as SC
 
 
 
@@ -37,31 +36,6 @@ listenTo port = do
   NS.bind sock (NS.addrAddress serverAddr)
   return sock
 
-masterReceiver :: Server -> IO ()
-masterReceiver server@Server{..} = forever $ do
-  (recv, key) <- NSB.recvFrom messageSocket maxBytes
-  let eitherMessage = decode recv
-
-  case eitherMessage of
-    Left _        -> logError (printf "From '%s' received non decodable message %s" (show key) (show recv))
-
-    Right message -> do
-      case message of
-        WorldMessage worldMessage     -> atomically $ writeTChan worldChan (convertWithKey worldMessage key)
-        ServiceMessage serviceMessage -> case (convertWithKey serviceMessage key) of
-          S.ConnectionMessage connectionMessage -> atomically $ writeTChan connectionChan connectionMessage
-          _ -> writeToServiceChan server key (convertWithKey serviceMessage key)
- where
-  maxBytes = 1024
-
--- TODO: use async race (I think) to create a sibling relationship between clientSender and clientReceiver
-
-clientSender :: Server -> Client -> IO ()
-clientSender Server{..} Client{..} = forever $ join $ atomically $ do
-  message <- readTChan outMessageChan
-  return $ do
-    NSB.sendTo messageSocket (encode message) key
-
 sendMessage :: Client -> SC.Message -> STM ()
 sendMessage Client{..} msg =
   writeTChan outMessageChan msg
@@ -72,11 +46,31 @@ broadcast Server{..} msg = do
   clientMap <- readTVar clients
   mapM_ (\client -> sendMessage client msg) (Map.elems clientMap)
 
-writeToServiceChan :: Server -> ClientKey -> S.ServiceMessage -> IO ()
-writeToServiceChan server@Server{..} key message = join $ atomically $ do
-  clientM <- lookupClient server key
-  case clientM of
-    Just client -> do
-      writeTChan (serviceChan client) message
-      return $ pure ()
-    Nothing     -> return $ logError (printf "Non connection request message from unconnected client %s : %s" (show key) (show message))
+masterReceiver :: Server -> IO ()
+masterReceiver server@Server{..} = forever $ do
+  (recv, key) <- NSB.recvFrom messageSocket maxBytes
+  let eitherMessage = decode recv
+  case eitherMessage of
+    Left _        -> logError (printf "From '%s' received non decodable message %s" (show key) (show recv))
+    Right message -> messageAssigner server key message
+ where
+  maxBytes = 1024
+
+messageAssigner :: Server -> ClientKey -> CS.Message -> IO ()
+messageAssigner server@Server{..} key message = atomically $ do
+  case message of
+    CS.WorldMessage worldMessage           -> writeTChan worldChan (convertWithKey worldMessage key)
+    CS.ConnectionMessage connectionMessage -> writeTChan connectionChan (convertWithKey connectionMessage key)
+    CS.ServiceMessage serviceMessage -> do
+      clientM <- lookupClient server key
+      case clientM of
+        Just client -> do
+          writeTChan (serviceChan client) (convert serviceMessage)
+        Nothing     -> return ()
+
+-- TODO: use async race (I think) to create a sibling relationship between clientSender and clientServiceConsumer
+clientSender :: Server -> Client -> IO ()
+clientSender Server{..} Client{..} = forever $ join $ atomically $ do
+  message <- readTChan outMessageChan
+  return $ do
+    NSB.sendTo messageSocket (encode message) key

@@ -8,7 +8,6 @@ module GServices.Client (
 import Control.Concurrent.STM (atomically, readTChan)
 import Control.Concurrent.STM.TVar (modifyTVar')
 import Control.Monad (join, forever)
-import Data.Serialize (encode)
 import Text.Printf (printf)
 
 import GState.Client (ClientState(..))
@@ -18,15 +17,15 @@ import GNetwork.Client (sendMessage)
 import GLogger.Client (logInfo)
 
 
+
 settingsService :: ClientState -> IO ()
 settingsService clientState@ClientState{..} = forever $ join $ atomically $ do
   message <- readTChan settingsSvcChan
   return $ do
     case message of
       Quit -> do
-        sendMessage clientState (encode $ ServiceMessage $ ConnectionMessage ConnectionTerminated)
+        _ <- sendMessage clientState (ConnectionMessage ConnectionTerminated)
         atomically $ modifyTVar' shouldQuit (const True)
-    -- settingsService clientState
 
 pingService :: ClientState -> IO ()
 pingService clientState@ClientState{..} = forever $ join $ atomically $ do
@@ -34,7 +33,7 @@ pingService clientState@ClientState{..} = forever $ join $ atomically $ do
   return $ do
     case message of
       C.PingRequest -> do
-        sendMessage clientState (encode $ ServiceMessage $ PingMessage CS.PingRequest)
+        _ <- sendMessage clientState (ServiceMessage $ PingMessage CS.PingRequest)
         return ()
       PingResponse ping -> do
         logInfo (printf "Ping: %s" ping)

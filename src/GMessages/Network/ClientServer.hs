@@ -25,11 +25,11 @@ data PingMessage = PingRequest
 data WorldMessage = PositionUpdate Point
                   deriving (Show, Eq, Generic)
 
-data ServiceMessage = ConnectionMessage ConnectionMessage
-                    | PingMessage PingMessage
+data ServiceMessage = PingMessage PingMessage
                     deriving (Show, Eq, Generic)
 
-data Message = WorldMessage WorldMessage
+data Message = ConnectionMessage ConnectionMessage
+             | WorldMessage WorldMessage
              | ServiceMessage ServiceMessage
              deriving (Show, Eq, Generic)
 

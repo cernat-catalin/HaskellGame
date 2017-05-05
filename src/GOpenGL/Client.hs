@@ -10,11 +10,19 @@ import qualified Graphics.UI.GLFW as GLFW
 import Control.Monad (forM_)
 import System.Exit (exitFailure)
 import Text.Printf (printf)
+import Control.Concurrent (myThreadId, ThreadId)
+import Control.Exception (throwTo)
+import System.Exit (ExitCode(..))
+import System.Posix.Signals (installHandler, keyboardSignal, Handler(..))
 
+
+import GMessages.Network.ClientServer (Message(..), ConnectionMessage(..))
+import GNetwork.Client (sendMessage)
 import Common.GObjects (Circle(..), Player(..), World(..))
 import GState.Client (ClientState(..))
 import GLogger.Client (logError)
 import GInput.Client (keyCallback)
+
 
 
 drawCircle :: Circle -> IO ()
@@ -54,9 +62,16 @@ withOpenGL clientState func = do
       GLFW.makeContextCurrent window
       flip (maybe (GLFW.terminate >> exitFailure)) window $ \window' -> do
         GLFW.setKeyCallback window' (Just $ keyCallback clientState)
+        tid <- myThreadId
+        _ <- installHandler keyboardSignal (Catch $ exitGame clientState tid) Nothing
         func window'
         GLFW.destroyWindow window'
       GLFW.terminate
     else do
       logError (printf "Could not initialize GLFW")
       exitFailure
+
+exitGame :: ClientState -> ThreadId -> IO ()
+exitGame clientState@ClientState{..} id' = do
+  _ <- sendMessage clientState (ConnectionMessage $ ConnectionTerminated)
+  throwTo id' ExitSuccess
