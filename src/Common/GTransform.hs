@@ -6,7 +6,8 @@ module Common.GTransform (
   movePlayerUp,
   movePlayerDown,
   addPlayer,
-  removePlayer
+  removePlayer,
+  movePlayer
   ) where
 
 import Control.Monad.State (get, modify, execState)
@@ -14,6 +15,7 @@ import qualified Data.Map as Map
 import Network.Socket (SockAddr)
 
 import Common.GObjects (Circle(..), CircleS, Player(..), PlayerS, World(..), WorldS)
+import Common.GTypes (Point)
 
 getPlayer :: SockAddr -> WorldS (Maybe Player)
 getPlayer addr = get >>= (return . (Map.lookup addr) . players)
@@ -35,6 +37,12 @@ removePlayer addr = modify (\world -> world {players = Map.delete addr (players 
 
 moveCircle :: (Double, Double) ->  CircleS ()
 moveCircle (dx, dy)= modify (\(Circle (x, y) rad) -> Circle (x + dx, y + dy) rad)
+
+movePlayer :: Point -> PlayerS ()
+movePlayer point = do
+  ply <- get
+  let circle' = Circle { center = point, radius = (radius $ circle ply) }
+  modify (\ply' -> ply' { circle = circle' })
 
 movePlayerLeft :: PlayerS ()
 movePlayerLeft = do

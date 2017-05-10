@@ -14,7 +14,7 @@ import GNetwork.Server (broadcast)
 import GMessages.Server as S (KeyMessage(..), WorldMessage(..))
 import GMessages.Network.ServerClient as SC (Message(..), WorldMessage(..))
 import Common.GObjects (World(..), WorldS)
-import Common.GTransform (addPlayer, removePlayer)
+import Common.GTransform (updatePlayer, movePlayer, addPlayer, removePlayer)
 
 
 mainLoop :: Server -> IO ()
@@ -52,7 +52,7 @@ processMessage (S.KeyMessage key message) =
   case message of
     AddPlayer -> addPlayer key
     RemovePlayer -> removePlayer key
-    _          -> pure ()
+    PositionUpdate position -> updatePlayer key (movePlayer position)
 
 sendUpdates :: Server -> IO ()
 sendUpdates server@Server{..} = atomically $ broadcast server (SC.WorldMessage $ SC.WorldUpdate world)

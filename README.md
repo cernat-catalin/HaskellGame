@@ -1,5 +1,8 @@
 Simple multiplayer haskell game.
 
+Build command:
+stack build --ghc-options="-Wall -Werror -fno-warn-orphans"
+
 TODO list:
 - [x] Refactor all files (complete all todos, fine-grain imports, etc.)
 - [x] Change how outgoing messages are processed on the server
@@ -19,12 +22,12 @@ TODO list:
 - [x] Server services
 - [x] Separate messages
 - [x] Review messages structure (so that patterns are exhaustive both on server and client)
-- [ ] Handle client input process
+- [x] Handle client input process
+- [ ] Lenses
+- [ ] Replace map with an unordered map
 - [ ] Separate files in the Common folder
 - [ ] Code review
 - [ ] Server main loop
 - [ ] Simple playable game
-- [ ] Replace map with an unordered map
-- [ ] Lenses
 - [ ] Standardize log and error messages
 - [ ] Code review (also review pure STM functions like addClient)

@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module GMessages.Network.ServerClient (
+  ConnectionMessage(..),
   PingMessage(..),
   WorldMessage(..),
   ServiceMessage(..),
@@ -10,9 +11,12 @@ module GMessages.Network.ServerClient (
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 
+import Common.GTypes (ClientKey)
 import Common.GObjects (World)
 
 
+data ConnectionMessage = PlayerKey ClientKey
+                       deriving (Show, Eq, Generic)
 
 data PingMessage = PingResponse String
                  deriving (Show, Eq, Generic)
@@ -27,6 +31,7 @@ data Message = WorldMessage WorldMessage
              | ServiceMessage ServiceMessage
              deriving (Show, Eq, Generic)
 
+instance Serialize ConnectionMessage
 instance Serialize PingMessage
 instance Serialize ServiceMessage
 instance Serialize WorldMessage

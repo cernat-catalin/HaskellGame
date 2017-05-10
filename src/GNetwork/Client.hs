@@ -13,8 +13,8 @@ import Control.Concurrent.STM (atomically, writeTChan)
 import Data.Serialize (decode, encode)
 import Text.Printf (printf)
 
-import Common.GTypes (HostName, Port)
-import GState.Client (ClientState(..), ConnHandle(..))
+import Common.GTypes (ConnHandle(..), HostName, Port)
+import GState.Client (ClientState(..))
 import GLogger.Client (logError)
 import GMessages.Network.Converter (convert)
 import qualified GMessages.Network.ServerClient as SC
@@ -30,9 +30,9 @@ connectTo hostName port = do
   sock <- NS.socket (NS.addrFamily serverAddr) NS.Datagram NS.defaultProtocol
   return $ ConnHandle sock (NS.addrAddress serverAddr)
 
-sendMessage :: ClientState -> CS.Message -> IO Int
-sendMessage ClientState{..} message = do
-  let (sock, addr) = (connSocket serverHandle, connAddr serverHandle)
+sendMessage :: ConnHandle -> CS.Message -> IO Int
+sendMessage ConnHandle{..} message = do
+  let (sock, addr) = (connSocket, connAddr)
   NSB.sendTo sock (encode message) addr
 
 receiver :: ClientState -> IO ()

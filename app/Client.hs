@@ -7,24 +7,21 @@ import Control.Concurrent (forkIO)
 import Text.Printf (printf)
 
 import GNetwork.Client (connectTo, receiver)
-import GState.Client (newClientState)
 import GLogger.Client (initLogger, cleanLog, logInfo)
 import GMainLoop.Client (mainLoop)
 import GOpenGL.Client (withOpenGL)
 import GServices.Client (settingsService, pingService)
 import GFunc.Client.Setup (initialSetup)
+import GState.Client (ClientState(..))
 
 main :: IO ()
 main = withSocketsDo $ do
   cleanLog
   initLogger
   serverHandle   <- connectTo "127.0.0.1" "10541"
-  clientState    <- newClientState serverHandle
+  clientState    <- initialSetup serverHandle
 
-  logInfo (printf "Setup is done. Sending connection request")
-  initialSetup clientState
-
-
+  logInfo (printf "Client playerKey: %s" (show $ playerKey clientState))
   logInfo (printf "Starting to listen")
 
   -- NOTE: Don't start GLFW and OpenGL with forkIO

@@ -19,21 +19,21 @@ import GLogger.Client (logInfo)
 
 
 settingsService :: ClientState -> IO ()
-settingsService clientState@ClientState{..} = forever $ join $ atomically $ do
+settingsService ClientState{..} = forever $ join $ atomically $ do
   message <- readTChan settingsSvcChan
   return $ do
     case message of
       Quit -> do
-        _ <- sendMessage clientState (ConnectionMessage ConnectionTerminated)
+        _ <- sendMessage serverHandle (ConnectionMessage ConnectionTerminated)
         atomically $ modifyTVar' shouldQuit (const True)
 
 pingService :: ClientState -> IO ()
-pingService clientState@ClientState{..} = forever $ join $ atomically $ do
+pingService ClientState{..} = forever $ join $ atomically $ do
   message <- readTChan pingSvcChan
   return $ do
     case message of
       C.PingRequest -> do
-        _ <- sendMessage clientState (ServiceMessage $ PingMessage CS.PingRequest)
+        _ <- sendMessage serverHandle (ServiceMessage $ PingMessage CS.PingRequest)
         return ()
       PingResponse ping -> do
         logInfo (printf "Ping: %s" ping)

@@ -5,11 +5,13 @@ module GNetwork.Server (
   masterReceiver,
   sendMessage,
   broadcast,
-  clientSender
+  clientSender,
+  sendMessageRaw
   ) where
 
 import qualified Network.Socket as NS
 import qualified Network.Socket.ByteString as NSB
+import qualified Data.ByteString as BS
 import qualified Data.Map as Map
 import Control.Concurrent.STM (STM, atomically, readTChan, readTVar, writeTChan)
 import Control.Monad (forever, join)
@@ -39,6 +41,11 @@ listenTo port = do
 sendMessage :: Client -> SC.Message -> STM ()
 sendMessage Client{..} msg =
   writeTChan outMessageChan msg
+
+sendMessageRaw :: Server -> Client -> BS.ByteString -> IO ()
+sendMessageRaw Server{..} Client{..} message = do
+  _ <- NSB.sendTo messageSocket message key
+  return ()
 
 -- TODO research unbounded STM
 broadcast :: Server -> SC.Message -> STM ()

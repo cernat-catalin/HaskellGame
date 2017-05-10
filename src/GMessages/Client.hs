@@ -1,4 +1,5 @@
 module GMessages.Client (
+  ConnectionMessage(..),
   PingMessage(..),
   WorldMessage(..),
   WorldInputMessage(..),
@@ -7,8 +8,13 @@ module GMessages.Client (
   ) where
 
 import Common.GObjects (World)
+import Common.GTypes (ClientKey)
 
 
+
+
+data ConnectionMessage = PlayerKey ClientKey
+                       deriving (Show, Eq)
 
 data PingMessage = PingRequest
                  | PingResponse String

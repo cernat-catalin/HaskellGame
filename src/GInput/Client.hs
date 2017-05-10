@@ -1,12 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module GInput.Client (
-  keyCallback,
-  processWorldInput
+  keyCallback
   ) where
 
-import Control.Concurrent.STM (atomically, readTChan, writeTChan, isEmptyTChan)
-import Control.Monad (join)
+import Control.Concurrent.STM (atomically, writeTChan)
 import qualified Graphics.UI.GLFW as GLFW
 
 import GState.Client (ClientState(..))
@@ -28,15 +26,3 @@ keyCallback ClientState{..} _ key _  keyState _ =
         GLFW.Key'P      -> atomically $ writeTChan pingSvcChan PingRequest
         _               -> return ()
     _                     -> return ()
-
-processWorldInput :: ClientState -> IO ()
-processWorldInput clientState@ClientState{..} = join $ atomically $ do
-  emptyChan <- isEmptyTChan worldInputChan
-  if not emptyChan
-    then do
-        _ <- readTChan worldInputChan
-        return $ do
-          -- sendMessage clientState (encode $ WorldMessage message)
-          processWorldInput clientState
-    else do
-      return $ pure ()

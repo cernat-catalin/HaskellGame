@@ -6,13 +6,14 @@ module Common.GTypes (
   Port,
   Point,
   Radius,
-  ClientSettings(..)
+  ClientSettings(..),
+  ConnHandle(..)
   ) where
 
 import Graphics.Rendering.OpenGL (GLdouble)
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
-import Network.Socket (SockAddr)
+import Network.Socket (Socket, SockAddr)
 
 
 type ClientKey  = SockAddr
@@ -25,5 +26,10 @@ data ClientSettings = ClientSettings {
   name  :: String,
   color :: String
 } deriving (Show, Generic, Eq)
+
+data ConnHandle = ConnHandle {
+  connSocket :: Socket,
+  connAddr   :: SockAddr
+} deriving (Show)
 
 instance Serialize ClientSettings

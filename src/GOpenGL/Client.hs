@@ -72,6 +72,6 @@ withOpenGL clientState func = do
       exitFailure
 
 exitGame :: ClientState -> ThreadId -> IO ()
-exitGame clientState@ClientState{..} id' = do
-  _ <- sendMessage clientState (ConnectionMessage $ ConnectionTerminated)
+exitGame ClientState{..} id' = do
+  _ <- sendMessage serverHandle (ConnectionMessage $ ConnectionTerminated)
   throwTo id' ExitSuccess
