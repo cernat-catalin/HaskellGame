@@ -5,89 +5,99 @@ module GMainLoop.Client (
 ) where
 
 import qualified Graphics.UI.GLFW as GLFW
+import qualified Graphics.Rendering.OpenGL as GL
 import Control.Monad (join, unless)
 import Control.Monad.State (put, evalState, execState, modify)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.STM (atomically, isEmptyTChan, readTChan)
 import Control.Concurrent.STM.TVar (readTVar)
-import Text.Printf (printf)
+import Control.Lens ((^.), (.=), zoom)
+import Data.Maybe (fromJust)
+import qualified Linear as L
 
-import Common.GObjects (World(..), WorldS, Player(..), Circle(..))
-import GState.Client (ClientState(..))
+import GCommon.Objects.Objects as GO
+import GState.Client (ClientState(..), KeysState(..))
 import GOpenGL.Client (drawWorld)
-import Common.GTransform (getPlayer, updatePlayer, movePlayerLeft, movePlayerRight, movePlayerUp, movePlayerDown)
-import GLogger.Client (logInfo)
+import GCommon.Objects.Transforms (getPlayer, updatePlayer, moveVehicle, setOrientation)
 import GNetwork.Client (sendMessage)
 import qualified GMessages.Client as C
 import qualified GMessages.Network.ClientServer as CS
+import GInput.Client (processWorldInput, Direction(..))
+import GOpenGL.Meshes (ShaderResources)
+import GLogger.Client (logInfo)
+import Text.Printf (printf)
 
 
 
-mainLoop :: ClientState -> GLFW.Window -> IO ()
-mainLoop clientState@ClientState{..} window = do
+mainLoop :: ClientState -> ShaderResources -> GLFW.Window -> IO ()
+mainLoop clientState@ClientState{..} shaderResources window = do
+
+  -- logInfo (printf "World = %s" (show world))
+
   threadDelay 14000 -- 0.014 sec
 
   -- Process input messages and send new position
-  world' <- processWorldInput clientState
-  let clientState' = clientState { world = world' }
-  sendPositionUpdate clientState
+  clientState1  <- processWorldInput clientState
+  let clientState21 = processKeysState clientState1
+  clientState22 <- processMousePos clientState21 window
+  sendPositionUpdate clientState22
 
   -- Process server world updates
-  world'' <- updateWorld clientState'
-  let clientState'' = clientState' { world = world'' }
+  world' <- serverUpdateWorld clientState22
+  let clientState3 = clientState22 { world = world' }
 
   -- Draw world
-  drawWorld clientState'' window
+  drawWorld clientState3 shaderResources window
   shouldQuit_ <- atomically $ readTVar shouldQuit
   unless shouldQuit_ $ do
-    mainLoop clientState'' window
+    mainLoop clientState3 shaderResources window
 
-updateWorld :: ClientState -> IO World
-updateWorld clientState@ClientState{..} = join $ atomically $ do
+processKeysState :: ClientState -> ClientState
+processKeysState clientState@ClientState{..} =
+  let tUp    = if up keysState then updatePlayer playerKey (zoom vehicle (moveVehicle DUp)) else return ()
+      tLeft  = if left keysState then updatePlayer playerKey (zoom vehicle (moveVehicle DLeft)) else return ()
+      tDown  = if down keysState then updatePlayer playerKey (zoom vehicle (moveVehicle DDown)) else return ()
+      tRight = if right keysState then updatePlayer playerKey (zoom vehicle (moveVehicle DRight)) else return ()
+  in clientState {world = (execState (tUp >> tLeft >> tDown >> tRight)) world } 
+
+processMousePos :: ClientState -> GLFW.Window -> IO ClientState
+processMousePos clientState@ClientState{..} window = do
+  (x, y) <- GLFW.getCursorPos window
+  (width, height) <- GLFW.getFramebufferSize window
+  let (L.V2 cx cy) = (fromJust $ evalState (getPlayer playerKey) world) ^. vehicle . position
+      (x', y') = (2 * x / fromIntegral width - 1, (-2) * y / fromIntegral height + 1)
+      angle = atan2 (realToFrac y') (realToFrac x')
+  return $ clientState {world = (execState (updatePlayer playerKey (zoom vehicle (setOrientation angle))) world)}
+
+serverUpdateWorld :: ClientState -> IO World
+serverUpdateWorld clientState@ClientState{..} = join $ atomically $ do
   emptyChan <- isEmptyTChan worldUpdateChan 
   if not emptyChan
     then do
         message <- readTChan worldUpdateChan
         return $ do
+          -- Client player should keep it's position (simulated on the client)
           let playerM = evalState (getPlayer playerKey) world
               updateFunc = case playerM of
-                Nothing -> return ()
-                Just player -> put player
+                Nothing     -> return ()
+                Just player -> (vehicle . position) .= (player ^. vehicle . position) >>
+                               (vehicle . orientation) .= (player ^. vehicle . orientation)
+
               world' = execState (processWorldMessage message >> updatePlayer playerKey updateFunc) world
-          updateWorld clientState { world = world' }
+          serverUpdateWorld clientState { world = world' }
     else do
       return $ pure world
 
 processWorldMessage :: C.WorldMessage -> WorldS ()
 processWorldMessage message =
   case message of
-    C.WorldUpdate world -> modify (\_ -> world)
-
-processWorldInput :: ClientState -> IO World
-processWorldInput clientState@ClientState{..} = join $ atomically $ do
-  emptyChan <- isEmptyTChan worldInputChan
-  if not emptyChan
-    then do
-        message <- readTChan worldInputChan
-        return $ do
-          let world' = execState (processInputMessage clientState message) world
-          processWorldInput clientState { world = world' }
-    else do
-      return $ pure world
-
-processInputMessage :: ClientState -> C.WorldInputMessage -> WorldS ()
-processInputMessage ClientState{..} message =
-  case message of
-    C.MoveLeft  -> updatePlayer playerKey movePlayerLeft
-    C.MoveRight -> updatePlayer playerKey movePlayerRight
-    C.MoveUp    -> updatePlayer playerKey movePlayerUp
-    C.MoveDown  -> updatePlayer playerKey movePlayerDown
+    C.WorldUpdate world -> put world
 
 sendPositionUpdate :: ClientState -> IO ()
 sendPositionUpdate ClientState{..} = do
   let playerM = evalState (getPlayer playerKey) world
   case playerM of
     Just player -> do
-      _ <- sendMessage serverHandle (CS.WorldMessage $ CS.PositionUpdate (center $ circle player))
+      _ <- sendMessage serverHandle (CS.WorldMessage $ CS.PositionUpdate (player ^. vehicle . position, player ^. vehicle . orientation))
       return ()
     Nothing     -> return ()

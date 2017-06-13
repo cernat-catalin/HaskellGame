@@ -14,16 +14,15 @@ import Network.Socket (Socket)
 import qualified Control.Concurrent.STM as STM
 import qualified Data.Map as Map
 
-import Common.GTypes (ClientKey, ClientSettings)
+import GCommon.Types.Generic (ClientKey, ClientSettings)
 import GMessages.Network.ServerClient (Message)
-import GMessages.Server (KeyMessage, WorldMessage, ConnectionMessage, ServiceMessage)
-import Common.GObjects (World(..), newWorld)
+import GMessages.Server (KeyMessage, WorldMessage, ConnectionMessage, PingMessage)
+import GCommon.Objects.Objects (World(..), newWorld)
 
 
 
 data Client = Client {
   key            :: ClientKey,
-  serviceChan    :: STM.TChan ServiceMessage,
   outMessageChan :: STM.TChan Message,
   settings       :: ClientSettings
 }
@@ -32,35 +31,38 @@ instance Show Client where
   show client = show (key client) ++ show (settings client)
 
 data Server = Server {
-  clients        :: STM.TVar (Map.Map ClientKey Client),
-  messageSocket  :: Socket,
-  worldChan      :: STM.TChan (KeyMessage WorldMessage),
-  connectionChan :: STM.TChan (KeyMessage ConnectionMessage),
-  world          :: World
+  clients           :: STM.TVar (Map.Map ClientKey Client),
+  messageSocket     :: Socket,
+
+  worldChan         :: STM.TChan (KeyMessage WorldMessage),
+  connectionSvcChan :: STM.TChan (KeyMessage ConnectionMessage),
+  pingSvcChan       :: STM.TChan (KeyMessage PingMessage),
+
+  world             :: World
 }
 
 newServer :: Socket -> IO Server
 newServer messageSocket = do
-  clients'        <- STM.newTVarIO Map.empty
-  worldChan'      <- STM.newTChanIO
-  connectionChan' <- STM.newTChanIO
+  clients'           <- STM.newTVarIO Map.empty
+  worldChan'         <- STM.newTChanIO
+  connectionSvcChan' <- STM.newTChanIO
+  pingSvcChan'       <- STM.newTChanIO
 
   return Server {
-    clients        = clients',
-    messageSocket  = messageSocket,
-    worldChan      = worldChan',
-    connectionChan = connectionChan',
-    world          = newWorld
+    clients           = clients',
+    messageSocket     = messageSocket,
+    worldChan         = worldChan',
+    connectionSvcChan = connectionSvcChan',
+    pingSvcChan       = pingSvcChan',
+    world             = newWorld
   }
 
 newClient :: ClientKey -> ClientSettings -> STM.STM Client
 newClient key' settings' = do
-  serviceChan'    <- STM.newTChan
   outMessageChan' <- STM.newTChan
 
   return Client {
     key            = key',
-    serviceChan    = serviceChan',
     outMessageChan = outMessageChan',
     settings       = settings'
   }

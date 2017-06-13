@@ -13,7 +13,7 @@ import Control.Concurrent.STM (atomically, writeTChan)
 import Data.Serialize (decode, encode)
 import Text.Printf (printf)
 
-import Common.GTypes (ConnHandle(..), HostName, Port)
+import GCommon.Types.Generic (ConnHandle(..), HostName, Port)
 import GState.Client (ClientState(..))
 import GLogger.Client (logError)
 import GMessages.Network.Converter (convert)

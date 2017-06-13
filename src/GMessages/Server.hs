@@ -6,7 +6,12 @@ module GMessages.Server (
   KeyMessage(..)
   ) where
 
-import Common.GTypes (ClientKey, Point, ClientSettings(..))
+
+import qualified Linear as L
+import Graphics.Rendering.OpenGL (GLfloat)
+
+import GCommon.Types.Generic (ClientKey, ClientSettings(..))
+import GCommon.Geometry (Point)
 
 
 
@@ -17,11 +22,13 @@ data ConnectionMessage = ConnectionRequest ClientSettings
 data PingMessage = PingRequest
                  deriving (Show, Eq)
 
-data WorldMessage = PositionUpdate Point
+data WorldMessage = PositionUpdate (L.V2 GLfloat, GLfloat)
                   | AddPlayer
                   | RemovePlayer
+                  | Fire
 
 data ServiceMessage = PingMessage PingMessage
+                    | ConnectionMessage ConnectionMessage
                     deriving (Show, Eq)
 
 data KeyMessage a = KeyMessage ClientKey a

@@ -14,57 +14,77 @@ import Control.Concurrent (myThreadId, ThreadId)
 import Control.Exception (throwTo)
 import System.Exit (ExitCode(..))
 import System.Posix.Signals (installHandler, keyboardSignal, Handler(..))
+import Control.Lens ((^.))
+import qualified Data.HashMap.Strict as HMap
+import qualified Graphics.GLUtil as U
+import qualified Linear as L
+import Control.Monad.State (put, evalState, execState, modify)
 
 
-import GMessages.Network.ClientServer (Message(..), ConnectionMessage(..))
+import GMessages.Network.ClientServer (Message(..), ConnectionMessage(..), ServiceMessage(..))
 import GNetwork.Client (sendMessage)
-import Common.GObjects (Circle(..), Player(..), World(..))
+import GCommon.Objects.Objects as GO
 import GState.Client (ClientState(..))
 import GLogger.Client (logError)
 import GInput.Client (keyCallback)
+import GOpenGL.Meshes (ShaderResources(..), drawMesh)
+import GFunc.Client.Setup (shaderResourcesSetup)
+import GCommon.Geometry (translate, rotate)
+import GCommon.Objects.Transforms (getPlayer)
 
 
-
-drawCircle :: Circle -> IO ()
-drawCircle (Circle (x, y) r) =
-  GL.renderPrimitive GL.TriangleFan $ do
-    GL.color colorRed
-    GL.vertex(GL.Vertex3 x y 0)
-    forM_ [0 .. triangleAmount] $ \i -> do
-      GL.color colorRed
-      GL.vertex(GL.Vertex3 (x + (r * cos(i * twicePi / triangleAmount))) (y + (r * sin(i * twicePi / triangleAmount))) 0)
-  where
-    triangleAmount = 20
-    twicePi = pi * 2
-    colorRed :: GL.Color3 GL.GLdouble
-    colorRed = GL.Color3 1 0 0
-
-drawWorld :: ClientState -> GLFW.Window -> IO ()
-drawWorld clientState window = do
-  (width, height) <- GLFW.getFramebufferSize window
-  let ratio = fromIntegral width / fromIntegral height
-  GL.viewport GL.$= (GL.Position 0 0, GL.Size (fromIntegral width) (fromIntegral height))
+drawWorld :: ClientState -> ShaderResources -> GLFW.Window -> IO ()
+drawWorld clientState@ClientState{..} shaderResources@ShaderResources{..} window = do
+  GL.clearColor GL.$= GL.Color4 1 1 1 1
   GL.clear [GL.ColorBuffer]
-  GL.matrixMode GL.$= GL.Projection
-  GL.loadIdentity
-  GL.ortho (negate ratio) ratio (negate 1.0) 1.0 1.0 (negate 1.0)
-  -- logInfo (printf "draw : %s" (show $ world clientState))
-  mapM_ (\player -> drawCircle (circle player)) (players $ world clientState)
+  -- In C++ example GLUT handles resizing the viewport?
+  (width, height) <- GLFW.getFramebufferSize window
+  GL.viewport GL.$= (GL.Position 0 0, GL.Size (fromIntegral width) (fromIntegral height))
+  GL.currentProgram GL.$= (Just . U.program $ program)
+
+
+
+  let playerM = evalState (getPlayer playerKey) world
+      cameraTrans = case playerM of
+        Nothing  -> L.identity
+        Just ply -> translate $ -(ply ^. vehicle . position)
+
+  case HMap.lookup 0 meshMap of
+    Nothing   -> return ()
+    Just mesh -> drawMesh shaderResources cameraTrans mesh
+
+  case HMap.lookup (-1) meshMap of
+    Nothing -> return ()
+    Just mesh -> drawMesh shaderResources cameraTrans mesh
+
+  mapM_ (\ply -> case HMap.lookup (ply ^. vehicle . meshId) meshMap of
+    Nothing   -> return ()
+    Just mesh -> let trans = (translate $ ply ^. vehicle . position) L.!*! (rotate $ ply ^. vehicle . orientation) in
+      drawMesh shaderResources (cameraTrans L.!*! trans) mesh) $ world ^. players
+
+  mapM_ (\bullet -> case HMap.lookup 1 meshMap of
+    Nothing   -> return ()
+    Just mesh -> let trans = (translate $ bullet ^. bposition) in
+      drawMesh shaderResources (cameraTrans L.!*! trans) mesh) $ world ^. bullets
+
   GLFW.swapBuffers $ window
   GLFW.pollEvents
 
-withOpenGL :: ClientState -> (GLFW.Window -> IO ()) -> IO ()
+
+withOpenGL :: ClientState -> (ShaderResources -> GLFW.Window -> IO ()) -> IO ()
 withOpenGL clientState func = do
   success <- GLFW.init
   if success
     then do
+      GLFW.windowHint $ GLFW.WindowHint'Samples 4
       window <- GLFW.createWindow 640 480 "Haskell Game" Nothing Nothing
       GLFW.makeContextCurrent window
       flip (maybe (GLFW.terminate >> exitFailure)) window $ \window' -> do
         GLFW.setKeyCallback window' (Just $ keyCallback clientState)
         tid <- myThreadId
         _ <- installHandler keyboardSignal (Catch $ exitGame clientState tid) Nothing
-        func window'
+        shaderResources <- shaderResourcesSetup
+        func shaderResources window'
         GLFW.destroyWindow window'
       GLFW.terminate
     else do
@@ -73,5 +93,5 @@ withOpenGL clientState func = do
 
 exitGame :: ClientState -> ThreadId -> IO ()
 exitGame ClientState{..} id' = do
-  _ <- sendMessage serverHandle (ConnectionMessage $ ConnectionTerminated)
+  _ <- sendMessage serverHandle (ServiceMessage $ ConnectionMessage $ ConnectionTerminated)
   throwTo id' ExitSuccess

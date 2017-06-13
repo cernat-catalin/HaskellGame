@@ -23,11 +23,7 @@ TODO list:
 - [x] Separate messages
 - [x] Review messages structure (so that patterns are exhaustive both on server and client)
 - [x] Handle client input process
-- [ ] Lenses
-- [ ] Replace map with an unordered map
-- [ ] Separate files in the Common folder
-- [ ] Code review
-- [ ] Server main loop
+- [x] Lenses
 - [ ] Simple playable game
 - [ ] Standardize log and error messages
 - [ ] Code review (also review pure STM functions like addClient)

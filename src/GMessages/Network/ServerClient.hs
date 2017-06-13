@@ -11,8 +11,8 @@ module GMessages.Network.ServerClient (
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
 
-import Common.GTypes (ClientKey)
-import Common.GObjects (World)
+import GCommon.Types.Generic (ClientKey)
+import GCommon.Objects.Objects (World)
 
 
 data ConnectionMessage = PlayerKey ClientKey

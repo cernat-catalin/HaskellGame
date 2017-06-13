@@ -19,11 +19,12 @@ import Data.Serialize (decode, encode)
 import Text.Printf (printf)
 
 import GState.Server (Server(..), Client(..), lookupClient)
-import Common.GTypes (Port, ClientKey)
+import GCommon.Types.Generic (Port, ClientKey)
 import GLogger.Server (logError)
 import GMessages.Network.Converter (convert, convertWithKey)
 import GMessages.Network.ClientServer as CS
 import GMessages.Network.ServerClient as SC
+import GMessages.Server as S
 
 
 
@@ -64,16 +65,12 @@ masterReceiver server@Server{..} = forever $ do
   maxBytes = 1024
 
 messageAssigner :: Server -> ClientKey -> CS.Message -> IO ()
-messageAssigner server@Server{..} key message = atomically $ do
+messageAssigner Server{..} key message = atomically $ do
   case message of
     CS.WorldMessage worldMessage           -> writeTChan worldChan (convertWithKey worldMessage key)
-    CS.ConnectionMessage connectionMessage -> writeTChan connectionChan (convertWithKey connectionMessage key)
-    CS.ServiceMessage serviceMessage -> do
-      clientM <- lookupClient server key
-      case clientM of
-        Just client -> do
-          writeTChan (serviceChan client) (convert serviceMessage)
-        Nothing     -> return ()
+    CS.ServiceMessage serviceMessage -> case serviceMessage of
+      CS.ConnectionMessage connectionMessage -> writeTChan connectionSvcChan (convertWithKey connectionMessage key)
+      CS.PingMessage pingMessage             -> writeTChan pingSvcChan (convertWithKey pingMessage key)
 
 -- TODO: use async race (I think) to create a sibling relationship between clientSender and clientServiceConsumer
 clientSender :: Server -> Client -> IO ()

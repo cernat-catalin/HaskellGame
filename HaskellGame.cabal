@@ -15,14 +15,15 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Common.GObjects, Common.GTypes, Common.GTransform,
+  exposed-modules:     GCommon.Objects.Objects,GCommon.Objects.PredefinedObjects, GCommon.Objects.Transforms
+                       GCommon.Types.Generic, GCommon.Geometry
                        GMessages.Network.ClientServer, GMessages.Network.ServerClient, GMessages.Network.Converter
                        GMessages.Client, GMessages.Server,
                        GNetwork.Client, GNetwork.Server,
                        GState.Client, GState.Server,
                        GLogger.Client, GLogger.Server,
                        GMainLoop.Client, GMainLoop.Server,
-                       GOpenGL.Client,
+                       GOpenGL.Client, GOpenGL.Meshes, GOpenGL.PredefinedMeshes,
                        GInput.Client,
                        GServices.Client, GServices.Server
                        GFunc.Client.Setup
@@ -38,7 +39,11 @@ library
                        containers,
                        lens,
                        hslogger,
-                       unix
+                       unix,
+                       GLUtil,
+                       linear,
+                       filepath,
+                       unordered-containers
   default-language:    Haskell2010
 
 executable Server

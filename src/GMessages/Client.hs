@@ -7,8 +7,8 @@ module GMessages.Client (
   SettingsMessage(..)
   ) where
 
-import Common.GObjects (World)
-import Common.GTypes (ClientKey)
+import GCommon.Objects.Objects (World)
+import GCommon.Types.Generic (ClientKey)
 
 
 
@@ -23,10 +23,10 @@ data PingMessage = PingRequest
 data WorldMessage = WorldUpdate World
                   deriving (Show, Eq)
 
-data WorldInputMessage = MoveLeft
-                       | MoveRight
-                       | MoveUp
-                       | MoveDown
+data WorldInputMessage = PressUp    | ReleaseUp
+                       | PressLeft  | ReleaseLeft
+                       | PressDown  | ReleaseDown
+                       | PressRight | ReleaseRight
                        deriving (Show, Eq)
 
 data ServiceMessage = PingMessage PingMessage

@@ -14,7 +14,7 @@ import Data.Serialize (encode)
 import GMessages.Server as S (KeyMessage(..), ConnectionMessage(..), ServiceMessage(..), PingMessage(..), WorldMessage(..))
 import GMessages.Network.ServerClient as SC (PingMessage(..), ServiceMessage(..), Message(..), ConnectionMessage(..))
 import GState.Server (Server(..), Client(..), addClient, removeClient, lookupClient)
-import Common.GTypes (ClientKey)
+import GCommon.Types.Generic (ClientKey)
 import GLogger.Server (logError, logInfo)
 import GNetwork.Server (clientSender, sendMessage, sendMessageRaw)
 
@@ -22,7 +22,7 @@ import GNetwork.Server (clientSender, sendMessage, sendMessageRaw)
 
 connectionService :: Server-> IO ()
 connectionService server@Server{..} = forever $ join $ atomically $ do
-  (KeyMessage key message) <- readTChan connectionChan
+  (KeyMessage key message) <- readTChan connectionSvcChan
   case message of
     ConnectionRequest settings -> do
       clientM <- lookupClient server key
@@ -30,12 +30,11 @@ connectionService server@Server{..} = forever $ join $ atomically $ do
         Just _  -> return $ logError (printf "Client %s is already connected but sent a conenction request" (show key))
         Nothing -> do
           client <- addClient server key settings
+          writeTChan worldChan (KeyMessage key AddPlayer)
           return $ do
             logInfo (printf "Client %s connected" (show key))
-            _ <- forkIO (clientServiceConsumer client)
             _ <- forkIO (clientSender server client)
             sendMessageRaw server client (encode (SC.PlayerKey key))
-            atomically $ writeTChan worldChan (KeyMessage key AddPlayer)
             return ()
       -- TODO: terminate client threads
     ConnectionTerminated -> do
@@ -44,18 +43,15 @@ connectionService server@Server{..} = forever $ join $ atomically $ do
         Nothing -> return $ logError (printf "Client %s is not connected but requested a disconnect" (show key))
         Just _ -> do
           removeClient server key
+          writeTChan worldChan (KeyMessage key RemovePlayer)
           return $ logInfo (printf "Client %s disconnected" (show key))
 
-pingService :: ClientKey -> String
-pingService _ = "Ping is 123ms"
-
-clientServiceConsumer :: Client -> IO ()
-clientServiceConsumer client@Client{..} = forever $ atomically $ do
-  message <- readTChan serviceChan
-  case message of
-    S.PingMessage pingMessage ->
-      case pingMessage of
-        PingRequest -> do
-          let ping = pingService key ++ "!"
-          _ <- sendMessage client (SC.ServiceMessage $ SC.PingMessage $ PingResponse ping)
-          return ()
+pingService :: Server -> IO ()
+pingService server@Server{..} = forever $ atomically $ do
+  (KeyMessage key message) <- readTChan pingSvcChan
+  clientM <- lookupClient server key
+  case clientM of
+    Nothing     -> return ()
+    Just client -> case message of
+      PingRequest -> do
+        sendMessage client (SC.ServiceMessage $ SC.PingMessage $ SC.PingResponse "123ms!")

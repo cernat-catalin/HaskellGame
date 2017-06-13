@@ -8,13 +8,16 @@ import Control.Monad (join)
 import Control.Monad.State (execState)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.STM (atomically, isEmptyTChan, readTChan)
+import Control.Lens ((.=), (^.))
+import qualified Linear as L
+import Data.Maybe (catMaybes)
 
 import GState.Server (Server(..))
 import GNetwork.Server (broadcast)
 import GMessages.Server as S (KeyMessage(..), WorldMessage(..))
 import GMessages.Network.ServerClient as SC (Message(..), WorldMessage(..))
-import Common.GObjects (World(..), WorldS)
-import Common.GTransform (updatePlayer, movePlayer, addPlayer, removePlayer)
+import GCommon.Objects.Objects as GO
+import GCommon.Objects.Transforms (updatePlayer, addPlayer, removePlayer, addBulletsFromPlayer)
 
 
 mainLoop :: Server -> IO ()
@@ -23,10 +26,13 @@ mainLoop server@Server{..} = do
   world' <- updateWorld server
   let server' = server { world = world' }
 
-  sendUpdates server'
+  world'' <- simulateWorld server'
+  let server'' = server' { world = world'' }
+
+  sendUpdates server''
   threadDelay 14000 --0.014
 
-  mainLoop server'
+  mainLoop server''
 
 {-
   TODO: This is a big problem.
@@ -50,9 +56,24 @@ updateWorld server@Server{..} = join $ atomically $ do
 processMessage :: (S.KeyMessage S.WorldMessage) -> WorldS ()
 processMessage (S.KeyMessage key message) =
   case message of
-    AddPlayer -> addPlayer key
+    AddPlayer -> addPlayer (newPlayer key)
     RemovePlayer -> removePlayer key
-    PositionUpdate position -> updatePlayer key (movePlayer position)
+    PositionUpdate (pos, angle)-> updatePlayer key (((vehicle . position) .= pos) >> ((vehicle. orientation) .= angle))
+    Fire -> addBulletsFromPlayer key
+
+simulateWorld :: Server -> IO World
+simulateWorld Server{..} = do
+  let bullets' = catMaybes $ map moveBullet (world ^. bullets)
+  return $ world { _bullets = bullets' }
+
+
+moveBullet :: Bullet -> Maybe Bullet
+moveBullet bullet@Bullet{..} =
+  let d = _bspeed / 60
+      travel' = _btravel - d
+      (L.V2 x y) = _bposition
+      (x', y') = (d * cos _borientation + x, d * sin _borientation + y)
+  in if (travel' <= 0) then Nothing else Just $ bullet { _btravel = travel', _bposition = L.V2 x' y' }
 
 sendUpdates :: Server -> IO ()
 sendUpdates server@Server{..} = atomically $ broadcast server (SC.WorldMessage $ SC.WorldUpdate world)

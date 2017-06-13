@@ -10,8 +10,10 @@ module GMessages.Network.ClientServer (
 
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
+import qualified Linear as L
+import Graphics.Rendering.OpenGL (GLfloat)
 
-import Common.GTypes (ClientSettings, Point)
+import GCommon.Types.Generic (ClientSettings)
 
 
 
@@ -22,14 +24,15 @@ data ConnectionMessage = ConnectionRequest ClientSettings
 data PingMessage = PingRequest
                  deriving (Show, Eq, Generic)
 
-data WorldMessage = PositionUpdate Point
+data WorldMessage = PositionUpdate (L.V2 GLfloat, GLfloat)
+                  | Fire
                   deriving (Show, Eq, Generic)
 
 data ServiceMessage = PingMessage PingMessage
+                    | ConnectionMessage ConnectionMessage
                     deriving (Show, Eq, Generic)
 
-data Message = ConnectionMessage ConnectionMessage
-             | WorldMessage WorldMessage
+data Message = WorldMessage WorldMessage
              | ServiceMessage ServiceMessage
              deriving (Show, Eq, Generic)
 

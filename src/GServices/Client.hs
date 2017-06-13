@@ -2,7 +2,8 @@
 
 module GServices.Client (
   settingsService,
-  pingService
+  pingService,
+  serverOutService
   ) where
 
 import Control.Concurrent.STM (atomically, readTChan)
@@ -24,7 +25,7 @@ settingsService ClientState{..} = forever $ join $ atomically $ do
   return $ do
     case message of
       Quit -> do
-        _ <- sendMessage serverHandle (ConnectionMessage ConnectionTerminated)
+        _ <- sendMessage serverHandle (ServiceMessage $ ConnectionMessage ConnectionTerminated)
         atomically $ modifyTVar' shouldQuit (const True)
 
 pingService :: ClientState -> IO ()
@@ -37,3 +38,11 @@ pingService ClientState{..} = forever $ join $ atomically $ do
         return ()
       PingResponse ping -> do
         logInfo (printf "Ping: %s" ping)
+
+
+serverOutService :: ClientState -> IO ()
+serverOutService ClientState{..} = forever $ join $ atomically $ do
+  message <- readTChan serverOutChan
+  return $ do
+    _ <- sendMessage serverHandle message
+    return ()
