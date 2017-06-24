@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     GCommon.Objects.Objects,GCommon.Objects.PredefinedObjects, GCommon.Objects.Transforms
+  exposed-modules:     GCommon.Objects.Objects, GCommon.Objects.Transforms
                        GCommon.Types.Generic, GCommon.Geometry
                        GMessages.Network.ClientServer, GMessages.Network.ServerClient, GMessages.Network.Converter
                        GMessages.Client, GMessages.Server,

@@ -29,8 +29,8 @@ connectionService server@Server{..} = forever $ join $ atomically $ do
       case clientM of
         Just _  -> return $ logError (printf "Client %s is already connected but sent a conenction request" (show key))
         Nothing -> do
-          client <- addClient server key settings
-          writeTChan worldChan (KeyMessage key AddPlayer)
+          client <- addClient server key
+          writeTChan worldChan (KeyMessage key $ AddPlayer settings)
           return $ do
             logInfo (printf "Client %s connected" (show key))
             _ <- forkIO (clientSender server client)

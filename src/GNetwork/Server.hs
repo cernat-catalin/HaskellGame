@@ -62,7 +62,7 @@ masterReceiver server@Server{..} = forever $ do
     Left _        -> logError (printf "From '%s' received non decodable message %s" (show key) (show recv))
     Right message -> messageAssigner server key message
  where
-  maxBytes = 1024
+  maxBytes = 65507
 
 messageAssigner :: Server -> ClientKey -> CS.Message -> IO ()
 messageAssigner Server{..} key message = atomically $ do

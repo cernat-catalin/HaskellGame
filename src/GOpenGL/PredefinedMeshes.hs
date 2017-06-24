@@ -1,8 +1,8 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module GOpenGL.PredefinedMeshes (
-  backgroundObj, triangle, square, circle, squareShallow,
-  firstEdina, bulletMesh, backGround, squareShallowMesh
+  backgroundObj, menuBackgroundObj, triangle, square, circle, squareShallow,
+  vehicle1, bulletMesh, backGround, squareShallowMesh, menuBackgroundMesh, healthMesh
 ) where
 
 import qualified Graphics.Rendering.OpenGL as GL
@@ -14,6 +14,7 @@ import qualified Data.HashMap.Strict as HMap
 import Data.Maybe
 
 import GOpenGL.Meshes (MeshObject(..), Mesh(..), ShaderResources(..))
+import Graphics.GLUtil (asUniform, getUniform, ShaderProgram)
 import GCommon.Geometry (translate, rotate, scale)
 
 
@@ -36,6 +37,24 @@ backgroundObj = MeshObject <$> vertsVbo <*> (pure draw')
 
       GL.vertexAttribArray (U.getAttrib (program r) (vertsAttr r)) $= GL.Disabled
 
+menuBackgroundObj :: IO MeshObject
+menuBackgroundObj = MeshObject <$> vertsVbo <*> (pure draw')
+  where
+    verts = [1, 1, -1, 1, 1, -1, -1, -1] :: [Float]
+    vertsVbo = U.makeBuffer GL.ArrayBuffer verts
+    draw' vertsVbo' ShaderResources{..} = do
+      asUniform (1 :: GL.GLint) $ getUniform program transparUnif
+      U.enableAttrib program vertsAttr
+
+      GL.bindBuffer GL.ArrayBuffer $= Just vertsVbo'
+      U.setAttrib program vertsAttr
+        GL.ToFloat $ GL.VertexArrayDescriptor 2 GL.Float 0 U.offset0
+
+      GL.drawArrays GL.TriangleStrip 0 4
+
+      asUniform (0 :: GL.GLint) $ getUniform program transparUnif
+      GL.vertexAttribArray (U.getAttrib program vertsAttr) $= GL.Disabled
+
 triangle :: IO MeshObject
 triangle = MeshObject <$> vertsVbo <*> (pure draw')
   where
@@ -57,7 +76,7 @@ square = MeshObject <$> vertsVbo <*> (pure draw')
   where
     verts = [0.1, 0.1, -0.1, 0.1, 0.1, -0.1, -0.1, -0.1] :: [Float]
     vertsVbo = U.makeBuffer GL.ArrayBuffer verts
-    draw' vertsVbo' (ShaderResources prog vAttr _ _ _ _) = do
+    draw' vertsVbo' (ShaderResources prog vAttr _ _ _ _ _ _) = do
       U.enableAttrib prog vAttr
 
       GL.bindBuffer GL.ArrayBuffer $= Just vertsVbo'
@@ -74,7 +93,7 @@ squareShallow = MeshObject <$> vertsVbo <*> (pure draw')
   where
     verts = [0.1, 0.1, -0.1, 0.1, -0.1, -0.1, 0.1, -0.1] :: [Float]
     vertsVbo = U.makeBuffer GL.ArrayBuffer verts
-    draw' vertsVbo' (ShaderResources prog vAttr _ _ _ _) = do
+    draw' vertsVbo' (ShaderResources prog vAttr _ _ _ _ _ _) = do
       U.enableAttrib prog vAttr
 
       GL.bindBuffer GL.ArrayBuffer $= Just vertsVbo'
@@ -93,7 +112,7 @@ circle = MeshObject <$> vertsVbo <*> (pure draw')
     n' = 20 :: Float
     verts = concat [[0.1 * cos (i * 2 * pi / n'), 0.1 * sin (i * 2 * pi / n')] | i <- [0 .. n']]
     vertsVbo = U.makeBuffer GL.ArrayBuffer verts
-    draw' vertsVbo' (ShaderResources prog vAttr _ _ _ _) = do
+    draw' vertsVbo' (ShaderResources prog vAttr _ _ _ _ _ _) = do
       U.enableAttrib prog vAttr
 
       GL.bindBuffer GL.ArrayBuffer $= Just vertsVbo'
@@ -104,8 +123,8 @@ circle = MeshObject <$> vertsVbo <*> (pure draw')
 
       GL.vertexAttribArray (U.getAttrib prog vAttr) $= GL.Disabled
 
-firstEdina :: (HMap.HashMap Int MeshObject) -> IO Mesh -- triangle is 1, square is 2, circle is 3
-firstEdina objectsMap = do
+vehicle1 :: (HMap.HashMap Int MeshObject) -> IO Mesh -- triangle is 1, square is 2, circle is 3
+vehicle1 objectsMap = do
   let circle' = fromJust $ HMap.lookup 3 objectsMap
       square' = fromJust $ HMap.lookup 2 objectsMap
       bigCircle     = MeshLeaf circle' (V3 1 1 0)
@@ -146,6 +165,18 @@ backGround objectsMap = do
   let background' = fromJust $ HMap.lookup 0 objectsMap
   return $ MeshLeaf background' (V3 0.78 0.78 0.78)
 
+menuBackgroundMesh :: (HMap.HashMap Int MeshObject) -> IO Mesh
+menuBackgroundMesh objectsMap = do
+  let menuBackground' = fromJust $ HMap.lookup (-2) objectsMap
+  return $ MeshLeaf menuBackground' (V3 0 0 0)
+
+healthMesh :: (HMap.HashMap Int MeshObject) -> IO Mesh
+healthMesh objectsMap = do
+  let square' = fromJust $ HMap.lookup 2 objectsMap
+      mesh    = MeshLeaf square' (V3 0 0 0)
+      trans   = scale 2 1
+  return $ MeshNode [(mesh, trans)]
+
 
 squareShallowMesh :: (HMap.HashMap Int MeshObject) -> IO Mesh
 squareShallowMesh objectsMap = do
@@ -153,21 +184,3 @@ squareShallowMesh objectsMap = do
       mesh = MeshLeaf squareShallow' (V3 0 0 0 )
       trans = scale 1.8 1.8
   return $ MeshNode [(mesh, trans)]
-
-
--- simpleBodyMesh :: IO Mesh
--- simpleBodyMesh = MeshLeaf <$> circle <*> pure (V3 1 0 0)
-
-
--- mediumCannonMesh :: IO Mesh
--- mediumCannonMesh = do
---   mesh <- MeshLeaf <$> square <*> pure (V3 0.5 0.5 0.5)
---   let trans = scale 1 0.4
---   return $ MeshNode [(mesh, trans)]
-
--- completeBodyMesh :: IO Mesh
--- completeBodyMesh = do
---   body   <- simpleBodyMesh
---   cannon <- mediumCannonMesh
---   let trans = (translate $ L.V2 0.1 0)
---   return $ MeshNode [(cannon, trans), (body, L.identity)]

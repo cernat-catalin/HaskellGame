@@ -43,7 +43,7 @@ receiver clientState@ClientState{..} = forever $ do
     Right message -> messageAssigner clientState message
     Left _        -> logError (printf "Received non decodable message '%s'" (show recv))
  where
-  maxBytes = 1024
+  maxBytes = 65507
 
 messageAssigner :: ClientState -> SC.Message -> IO ()
 messageAssigner ClientState{..} message = atomically $ do

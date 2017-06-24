@@ -33,6 +33,7 @@ class ConverterWithKey a b where
 instance ConverterWithKey CS.WorldMessage S.WorldMessage where
   convertWithKey message key = S.KeyMessage key $ case message of
     CS.PositionUpdate position -> S.PositionUpdate position
+    CS.SettingsUpdate settings -> S.SettingsUpdate settings
     CS.Fire                    -> S.Fire
 
 instance ConverterWithKey CS.PingMessage S.PingMessage where

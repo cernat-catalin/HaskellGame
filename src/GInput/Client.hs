@@ -6,7 +6,7 @@ module GInput.Client (
   processWorldInput
   ) where
 
-import Control.Concurrent.STM (atomically, writeTChan, readTChan, isEmptyTChan)
+import Control.Concurrent.STM (atomically, writeTChan, readTChan, isEmptyTChan, readTVar)
 import qualified Graphics.UI.GLFW as GLFW
 import Control.Monad (join, unless)
 
@@ -30,8 +30,13 @@ keyCallback ClientState{..} _ key _  keyState _ =
         GLFW.Key'W      -> atomically $ writeTChan worldInputChan PressUp
         GLFW.Key'S      -> atomically $ writeTChan worldInputChan PressDown
         GLFW.Key'Escape -> atomically $ writeTChan settingsSvcChan Quit
+        GLFW.Key'M      -> atomically $ writeTChan settingsSvcChan OpenMenu
         GLFW.Key'P      -> atomically $ writeTChan pingSvcChan PingRequest
-        GLFW.Key'Space  -> atomically $ writeTChan serverOutChan (CS.WorldMessage CS.Fire)
+        GLFW.Key'Space  -> do
+          menuIsOn_ <- atomically $ readTVar menuIsOn
+          if menuIsOn_ == True
+            then return ()
+            else atomically $ writeTChan serverOutChan (CS.WorldMessage CS.Fire)
         _               -> return ()
     GLFW.KeyState'Released ->
       case key of

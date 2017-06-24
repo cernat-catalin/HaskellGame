@@ -33,4 +33,5 @@ data ServiceMessage = PingMessage PingMessage
                     deriving (Show, Eq)
 
 data SettingsMessage = Quit
+                     | OpenMenu
                      deriving (Show, Eq)

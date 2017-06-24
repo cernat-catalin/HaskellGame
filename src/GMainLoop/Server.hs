@@ -17,7 +17,7 @@ import GNetwork.Server (broadcast)
 import GMessages.Server as S (KeyMessage(..), WorldMessage(..))
 import GMessages.Network.ServerClient as SC (Message(..), WorldMessage(..))
 import GCommon.Objects.Objects as GO
-import GCommon.Objects.Transforms (updatePlayer, addPlayer, removePlayer, addBulletsFromPlayer)
+import GCommon.Objects.Transforms (updatePlayer, addPlayer, changePlayerSettings, removePlayer, addBulletsFromPlayer)
 
 
 mainLoop :: Server -> IO ()
@@ -56,9 +56,10 @@ updateWorld server@Server{..} = join $ atomically $ do
 processMessage :: (S.KeyMessage S.WorldMessage) -> WorldS ()
 processMessage (S.KeyMessage key message) =
   case message of
-    AddPlayer -> addPlayer (newPlayer key)
+    AddPlayer settings -> addPlayer (newPlayer key settings)
+    SettingsUpdate settings -> changePlayerSettings key settings
     RemovePlayer -> removePlayer key
-    PositionUpdate (pos, angle)-> updatePlayer key (((vehicle . position) .= pos) >> ((vehicle. orientation) .= angle))
+    PositionUpdate (pos, angle)-> updatePlayer key (((pVehicle . vPosition) .= pos) >> ((pVehicle. vOrientation) .= angle))
     Fire -> addBulletsFromPlayer key
 
 simulateWorld :: Server -> IO World
@@ -69,11 +70,11 @@ simulateWorld Server{..} = do
 
 moveBullet :: Bullet -> Maybe Bullet
 moveBullet bullet@Bullet{..} =
-  let d = _bspeed / 60
-      travel' = _btravel - d
-      (L.V2 x y) = _bposition
-      (x', y') = (d * cos _borientation + x, d * sin _borientation + y)
-  in if (travel' <= 0) then Nothing else Just $ bullet { _btravel = travel', _bposition = L.V2 x' y' }
+  let d = _bSpeed / 60
+      travel' = _bTravel - d
+      (L.V2 x y) = _bPosition
+      (x', y') = (d * cos _bOrientation + x, d * sin _bOrientation + y)
+  in if (travel' <= 0) then Nothing else Just $ bullet { _bTravel = travel', _bPosition = L.V2 x' y' }
 
 sendUpdates :: Server -> IO ()
 sendUpdates server@Server{..} = atomically $ broadcast server (SC.WorldMessage $ SC.WorldUpdate world)

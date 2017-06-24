@@ -10,12 +10,12 @@ module GMessages.Server (
 import qualified Linear as L
 import Graphics.Rendering.OpenGL (GLfloat)
 
-import GCommon.Types.Generic (ClientKey, ClientSettings(..))
+import GCommon.Types.Generic (ClientKey, PlayerSettings(..))
 import GCommon.Geometry (Point)
 
 
 
-data ConnectionMessage = ConnectionRequest ClientSettings
+data ConnectionMessage = ConnectionRequest PlayerSettings
                        | ConnectionTerminated
                        deriving (Show, Eq)
 
@@ -23,7 +23,8 @@ data PingMessage = PingRequest
                  deriving (Show, Eq)
 
 data WorldMessage = PositionUpdate (L.V2 GLfloat, GLfloat)
-                  | AddPlayer
+                  | SettingsUpdate PlayerSettings
+                  | AddPlayer PlayerSettings
                   | RemovePlayer
                   | Fire
 

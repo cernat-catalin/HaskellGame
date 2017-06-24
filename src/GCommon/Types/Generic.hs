@@ -4,7 +4,7 @@ module GCommon.Types.Generic (
   ClientKey,
   HostName,
   Port,
-  ClientSettings(..),
+  PlayerSettings(..),
   ConnHandle(..)
   ) where
 
@@ -17,9 +17,10 @@ type ClientKey  = SockAddr
 type HostName   = String
 type Port       = String
 
-data ClientSettings = ClientSettings {
-  name  :: String,
-  color :: String
+data PlayerSettings = PlayerSettings {
+  name      :: String,
+  team      :: Int,
+  vehicleId :: Int
 } deriving (Show, Generic, Eq)
 
 data ConnHandle = ConnHandle {
@@ -27,4 +28,4 @@ data ConnHandle = ConnHandle {
   connAddr   :: SockAddr
 } deriving (Show)
 
-instance Serialize ClientSettings
+instance Serialize PlayerSettings

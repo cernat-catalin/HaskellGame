@@ -13,11 +13,11 @@ import GHC.Generics (Generic)
 import qualified Linear as L
 import Graphics.Rendering.OpenGL (GLfloat)
 
-import GCommon.Types.Generic (ClientSettings)
+import GCommon.Types.Generic (PlayerSettings)
 
 
 
-data ConnectionMessage = ConnectionRequest ClientSettings
+data ConnectionMessage = ConnectionRequest PlayerSettings
                        | ConnectionTerminated
                        deriving (Show, Eq, Generic)
 
@@ -25,6 +25,7 @@ data PingMessage = PingRequest
                  deriving (Show, Eq, Generic)
 
 data WorldMessage = PositionUpdate (L.V2 GLfloat, GLfloat)
+                  | SettingsUpdate PlayerSettings
                   | Fire
                   deriving (Show, Eq, Generic)
 

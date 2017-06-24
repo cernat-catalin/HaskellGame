@@ -20,6 +20,8 @@ data ShaderResources = ShaderResources {
   vertsAttr     :: String,
   colorUnif     :: String,
   transformUnif :: String,
+  projectionUnif :: String,
+  transparUnif  :: String,
   meshMap       :: HMap.HashMap Int Mesh,
   meshObjectsMap :: HMap.HashMap Int MeshObject
 }

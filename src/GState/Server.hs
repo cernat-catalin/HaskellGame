@@ -14,7 +14,7 @@ import Network.Socket (Socket)
 import qualified Control.Concurrent.STM as STM
 import qualified Data.Map as Map
 
-import GCommon.Types.Generic (ClientKey, ClientSettings)
+import GCommon.Types.Generic (ClientKey)
 import GMessages.Network.ServerClient (Message)
 import GMessages.Server (KeyMessage, WorldMessage, ConnectionMessage, PingMessage)
 import GCommon.Objects.Objects (World(..), newWorld)
@@ -23,12 +23,11 @@ import GCommon.Objects.Objects (World(..), newWorld)
 
 data Client = Client {
   key            :: ClientKey,
-  outMessageChan :: STM.TChan Message,
-  settings       :: ClientSettings
+  outMessageChan :: STM.TChan Message
 }
 
 instance Show Client where
-  show client = show (key client) ++ show (settings client)
+  show client = show (key client)
 
 data Server = Server {
   clients           :: STM.TVar (Map.Map ClientKey Client),
@@ -57,19 +56,18 @@ newServer messageSocket = do
     world             = newWorld
   }
 
-newClient :: ClientKey -> ClientSettings -> STM.STM Client
-newClient key' settings' = do
+newClient :: ClientKey -> STM.STM Client
+newClient key' = do
   outMessageChan' <- STM.newTChan
 
   return Client {
     key            = key',
-    outMessageChan = outMessageChan',
-    settings       = settings'
+    outMessageChan = outMessageChan'
   }
 
-addClient :: Server -> ClientKey -> ClientSettings -> STM.STM Client
-addClient Server{..} key settings = do
-  client <- newClient key settings
+addClient :: Server -> ClientKey -> STM.STM Client
+addClient Server{..} key = do
+  client <- newClient key
   STM.modifyTVar' clients $ Map.insert key client
   return client
 

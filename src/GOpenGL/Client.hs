@@ -19,6 +19,8 @@ import qualified Data.HashMap.Strict as HMap
 import qualified Graphics.GLUtil as U
 import qualified Linear as L
 import Control.Monad.State (put, evalState, execState, modify)
+import Control.Concurrent.STM (TVar, readTVar, atomically)
+import Graphics.GLUtil (asUniform, getUniform, ShaderProgram)
 
 
 import GMessages.Network.ClientServer (Message(..), ConnectionMessage(..), ServiceMessage(..))
@@ -29,8 +31,22 @@ import GLogger.Client (logError)
 import GInput.Client (keyCallback)
 import GOpenGL.Meshes (ShaderResources(..), drawMesh)
 import GFunc.Client.Setup (shaderResourcesSetup)
-import GCommon.Geometry (translate, rotate)
+import GCommon.Geometry (translate, rotate, scale)
 import GCommon.Objects.Transforms (getPlayer)
+
+drawMenuBlock :: ClientState -> ShaderResources -> L.M33 GL.GLfloat -> IO ()
+drawMenuBlock ClientState{..} shaderResources@ShaderResources{..} cameraMatrix = do
+  case HMap.lookup (-2) meshMap of
+    Nothing   -> return ()
+    Just mesh -> drawMesh shaderResources cameraMatrix mesh
+
+
+drawHUD :: ClientState -> ShaderResources -> IO ()
+drawHUD ClientState{..} shaderResources@ShaderResources{..} = do
+  let trans = translate (L.V2 0.7 0.8)
+  case HMap.lookup (-3) meshMap of
+    Nothing   -> return ()
+    Just mesh -> drawMesh shaderResources trans mesh
 
 
 drawWorld :: ClientState -> ShaderResources -> GLFW.Window -> IO ()
@@ -42,12 +58,16 @@ drawWorld clientState@ClientState{..} shaderResources@ShaderResources{..} window
   GL.viewport GL.$= (GL.Position 0 0, GL.Size (fromIntegral width) (fromIntegral height))
   GL.currentProgram GL.$= (Just . U.program $ program)
 
+  let ar = (fromIntegral width) / (fromIntegral height);
+  let projectionMatrix = L.ortho (-ar) ar (-1) 1 (-1) 1 :: L.M44 GL.GLfloat
+
+  asUniform projectionMatrix $ getUniform program projectionUnif
 
 
   let playerM = evalState (getPlayer playerKey) world
       cameraTrans = case playerM of
         Nothing  -> L.identity
-        Just ply -> translate $ -(ply ^. vehicle . position)
+        Just ply -> (scale 0.5 0.5) L.!*! (translate $ -(ply ^. pVehicle . vPosition))
 
   case HMap.lookup 0 meshMap of
     Nothing   -> return ()
@@ -57,15 +77,25 @@ drawWorld clientState@ClientState{..} shaderResources@ShaderResources{..} window
     Nothing -> return ()
     Just mesh -> drawMesh shaderResources cameraTrans mesh
 
-  mapM_ (\ply -> case HMap.lookup (ply ^. vehicle . meshId) meshMap of
+
+  menuIsOn_ <- atomically $ readTVar menuIsOn
+  if menuIsOn_ == True
+    then drawMenuBlock clientState shaderResources L.identity
+    else return ()
+
+ 
+
+  mapM_ (\ply -> case HMap.lookup (ply ^. pVehicle . vMeshId) meshMap of
     Nothing   -> return ()
-    Just mesh -> let trans = (translate $ ply ^. vehicle . position) L.!*! (rotate $ ply ^. vehicle . orientation) in
+    Just mesh -> let trans = (translate $ ply ^. pVehicle . vPosition) L.!*! (rotate $ ply ^. pVehicle . vOrientation) in
       drawMesh shaderResources (cameraTrans L.!*! trans) mesh) $ world ^. players
 
   mapM_ (\bullet -> case HMap.lookup 1 meshMap of
     Nothing   -> return ()
-    Just mesh -> let trans = (translate $ bullet ^. bposition) in
+    Just mesh -> let trans = (translate $ bullet ^. bPosition) in
       drawMesh shaderResources (cameraTrans L.!*! trans) mesh) $ world ^. bullets
+
+  drawHUD clientState shaderResources
 
   GLFW.swapBuffers $ window
   GLFW.pollEvents

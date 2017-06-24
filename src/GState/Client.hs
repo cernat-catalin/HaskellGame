@@ -35,7 +35,8 @@ data ClientState = ClientState {
   world             :: World,
   playerKey         :: ClientKey,
   keysState         :: KeysState,
-  shouldQuit        :: TVar Bool
+  shouldQuit        :: TVar Bool,
+  menuIsOn          :: TVar Bool
 }
 
 newClientState :: ConnHandle -> ClientKey -> IO ClientState
@@ -44,6 +45,7 @@ newClientState connHandle key = do
   worldInputChan'    <- newTChanIO
   serverOutChan'     <- newTChanIO
   shouldQuit'        <- newTVarIO False
+  menuIsOn'          <- newTVarIO False
   settingsSvcChan'   <- newTChanIO
   pingSvcChan'       <- newTChanIO
 
@@ -57,5 +59,6 @@ newClientState connHandle key = do
     world             = newWorld,
     playerKey         = key,
     keysState         = newKeysState,
-    shouldQuit        = shouldQuit'
+    shouldQuit        = shouldQuit',
+    menuIsOn          = menuIsOn'
   }

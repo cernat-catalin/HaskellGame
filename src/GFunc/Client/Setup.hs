@@ -2,7 +2,8 @@
 
 module GFunc.Client.Setup (
   initialSetup,
-  shaderResourcesSetup
+  shaderResourcesSetup,
+  gatherSettings
   ) where
 
 import qualified Network.Socket.ByteString as NSB
@@ -15,7 +16,7 @@ import           System.FilePath ((</>))
 import qualified Graphics.GLUtil as U
 
 import GLogger.Client (logInfo)
-import GCommon.Types.Generic (ClientSettings(..), ConnHandle(..), ClientKey)
+import GCommon.Types.Generic (PlayerSettings(..), ConnHandle(..), ClientKey)
 import GState.Client (ClientState(..), newClientState)
 import GNetwork.Client (sendMessage)
 import GMessages.Network.ClientServer (Message(..), ConnectionMessage(..), ServiceMessage(..))
@@ -27,11 +28,22 @@ import GOpenGL.Meshes (ShaderResources(..), Mesh(..), MeshObject(..))
 
 initialSetup :: ConnHandle -> IO ClientState
 initialSetup connHandle = do
-  let settings = ClientSettings {name = "Levi", color = "Green"}
+  settings <- gatherSettings
   _   <- sendMessage connHandle (ServiceMessage $ ConnectionMessage $ ConnectionRequest settings)
   key <- receivePlayerKey connHandle
   logInfo (printf "Key received: %s" (show key))
   newClientState connHandle key
+
+
+gatherSettings :: IO PlayerSettings
+gatherSettings = do
+  putStrLn "Enter name:"
+  name <- getLine
+  putStrLn "Pick a team\n1 - Blue\n2 - Red"
+  team <- read <$> getLine
+  putStrLn "Choose vehicle\n1 - Default"
+  vehicleId <- read <$> getLine
+  return $ PlayerSettings name team vehicleId
 
 receivePlayerKey :: ConnHandle -> IO ClientKey
 receivePlayerKey connHandle@ConnHandle{..} = do
@@ -44,22 +56,26 @@ receivePlayerKey connHandle@ConnHandle{..} = do
  where
   maxBytes = 1024
 
-
 meshMapSetup :: (HMap.HashMap Int MeshObject) -> IO (HMap.HashMap Int Mesh)
 meshMapSetup objectsMap = do
   background'  <- backGround objectsMap
+  menuBackgroundMesh' <- menuBackgroundMesh objectsMap
   bulletMesh' <- bulletMesh objectsMap
-  firstEdina' <- firstEdina objectsMap
+  vehicle1' <- vehicle1 objectsMap
   squareShallowMesh' <- squareShallowMesh objectsMap
+  healthMesh' <- healthMesh objectsMap
   let meshMap = (HMap.insert 0 background') .
                 (HMap.insert 1 bulletMesh') .
                 (HMap.insert (-1) squareShallowMesh') .
-                (HMap.insert 2 firstEdina') $ HMap.empty
+                (HMap.insert (-2) menuBackgroundMesh') .
+                (HMap.insert (-3) healthMesh') .
+                (HMap.insert 2 vehicle1') $ HMap.empty
   return meshMap
 
 meshObjectsMapSetup :: IO (HMap.HashMap Int MeshObject)
 meshObjectsMapSetup = do
   background' <- backgroundObj
+  menuBackground' <- menuBackgroundObj
   triangle' <- triangle
   square'   <- square
   circle'   <- circle
@@ -68,9 +84,9 @@ meshObjectsMapSetup = do
                        (HMap.insert 1 triangle') .
                        (HMap.insert 2 square') .
                        (HMap.insert (-1) squareShallow') .
+                       (HMap.insert (-2) menuBackground') .
                        (HMap.insert 3 circle') $ HMap.empty
   return meshObjectsMap
-                     
 
 shaderResourcesSetup :: IO ShaderResources
 shaderResourcesSetup = do
@@ -84,5 +100,7 @@ shaderResourcesSetup = do
             <*> pure "a_verts"
             <*> pure "u_color"
             <*> pure "u_transform"
+            <*> pure "u_projection"
+            <*> pure "u_transparent"
             <*> meshMapSetup meshObjectsMap'
             <*> pure meshObjectsMap'
