@@ -18,12 +18,15 @@ main = withSocketsDo $ do
   cleanLog
   initLogger
 
-  messageSock <- listenTo port
+  putStrLn "Enter ip:"
+  ip <- getLine
+  putStrLn "Enter port:"
+  port <- getLine
+
+  messageSock <- listenTo ip port
   server <- newServer messageSock
   logInfo (printf "Listening on port %s" port)
 
   _ <- forkIO (masterReceiver server)
   _ <- forkIO (connectionService server)
   mainLoop server
- where
-  port = "10541"

@@ -18,7 +18,13 @@ main :: IO ()
 main = withSocketsDo $ do
   cleanLog
   initLogger
-  serverHandle   <- connectTo "127.0.0.1" "10541"
+
+  putStrLn "Enter ip:"
+  ip <- getLine
+  putStrLn "Enter port:"
+  port <- getLine
+
+  serverHandle   <- connectTo ip port
   clientState    <- initialSetup serverHandle
 
   logInfo (printf "Client playerKey: %s" (show $ playerKey clientState))

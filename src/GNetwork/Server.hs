@@ -28,11 +28,11 @@ import GMessages.Server as S
 
 
 
-listenTo :: Port -> IO NS.Socket
-listenTo port = do
+listenTo :: String -> Port -> IO NS.Socket
+listenTo ip port = do
   addrInfos <- NS.getAddrInfo
               (Just (NS.defaultHints { NS.addrFlags = [NS.AI_PASSIVE] }))
-              (Just "127.0.0.1")
+              (Just ip)
               (Just port)
   let serverAddr = head addrInfos
   sock <- NS.socket (NS.addrFamily serverAddr) NS.Datagram NS.defaultProtocol
