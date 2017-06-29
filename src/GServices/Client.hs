@@ -11,6 +11,7 @@ import Control.Concurrent.STM (atomically, readTChan, readTVar, retry)
 import Control.Concurrent.STM.TVar (modifyTVar')
 import Control.Monad (join, forever)
 import Text.Printf (printf)
+import Data.Time (getCurrentTime, addUTCTime, diffUTCTime, NominalDiffTime(..))
 
 import GFunc.Client.Setup (gatherSettings)
 import GState.Client (ClientState(..))
@@ -38,10 +39,14 @@ pingService ClientState{..} = forever $ join $ atomically $ do
   return $ do
     case message of
       C.PingRequest -> do
-        _ <- sendMessage serverHandle (ServiceMessage $ PingMessage CS.PingRequest)
+        time <- getCurrentTime
+        _ <- sendMessage serverHandle (ServiceMessage $ PingMessage $ CS.PingRequest time)
         return ()
-      PingResponse ping -> do
-        logInfo (printf "Ping: %s" ping)
+      PingResponse time -> do
+        time' <- getCurrentTime
+        let ping = realToFrac $ diffUTCTime time' time :: Double
+            pingF = round (ping * 10000) :: Integer
+        putStrLn (printf "Ping: %dms" pingF)
 
 
 serverOutService :: ClientState -> IO ()

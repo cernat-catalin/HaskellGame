@@ -8,7 +8,7 @@ module GServices.Server (
 import Text.Printf (printf)
 import Control.Concurrent.STM (atomically, readTChan, writeTChan)
 import Control.Monad (join, forever)
-import Control.Concurrent (forkIO)
+import Control.Concurrent (forkIO, threadDelay)
 import Data.Serialize (encode)
 
 import GMessages.Server as S (KeyMessage(..), ConnectionMessage(..), ServiceMessage(..), PingMessage(..), WorldMessage(..))
@@ -47,11 +47,12 @@ connectionService server@Server{..} = forever $ join $ atomically $ do
           return $ logInfo (printf "Client %s disconnected" (show key))
 
 pingService :: Server -> IO ()
-pingService server@Server{..} = forever $ atomically $ do
+pingService server@Server{..} = forever $ join $ atomically $ do
   (KeyMessage key message) <- readTChan pingSvcChan
   clientM <- lookupClient server key
-  case clientM of
-    Nothing     -> return ()
-    Just client -> case message of
-      PingRequest -> do
-        sendMessage client (SC.ServiceMessage $ SC.PingMessage $ SC.PingResponse "123ms!")
+  return $ do
+    case clientM of
+      Nothing     -> return ()
+      Just client -> case message of
+        PingRequest ping -> do
+          atomically $ sendMessage client (SC.ServiceMessage $ SC.PingMessage $ SC.PingResponse ping)

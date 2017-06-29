@@ -43,6 +43,10 @@ library
                        GLUtil,
                        linear,
                        filepath,
+                       parallel,
+                       deepseq,
+                       data-ordlist,
+                       time,
                        unordered-containers
   default-language:    Haskell2010
 

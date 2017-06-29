@@ -9,6 +9,7 @@ module GMessages.Server (
 
 import qualified Linear as L
 import Graphics.Rendering.OpenGL (GLfloat)
+import Data.Time.Clock (UTCTime)
 
 import GCommon.Types.Generic (ClientKey, PlayerSettings(..))
 import GCommon.Geometry (Point)
@@ -19,7 +20,7 @@ data ConnectionMessage = ConnectionRequest PlayerSettings
                        | ConnectionTerminated
                        deriving (Show, Eq)
 
-data PingMessage = PingRequest
+data PingMessage = PingRequest UTCTime
                  deriving (Show, Eq)
 
 data WorldMessage = PositionUpdate (L.V2 GLfloat, GLfloat)

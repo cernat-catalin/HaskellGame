@@ -9,7 +9,8 @@ module GCommon.Objects.Transforms (
   moveVehicle,
   setOrientation,
   addBullet,
-  addBulletsFromPlayer
+  addBulletsFromPlayer,
+  addToHealth
   ) where
 
 import Control.Monad.State (execState, modify, get, put, StateT(..))
@@ -23,9 +24,8 @@ import Linear (V2(..))
 import Graphics.Rendering.OpenGL (GLfloat)
 
 import GCommon.Objects.Objects as GO
-import GCommon.Types.Generic (ClientKey, PlayerSettings)
-import GInput.Client (Direction(..))
-import GCommon.Geometry (Angle, translate, rotate, scale)
+import GCommon.Types.Generic (ClientKey, PlayerSettings, Direction(..))
+import GCommon.Geometry (Angle, translate, rotate, scale, Rectangle, insideRectangle)
 
 
 
@@ -45,6 +45,9 @@ removePlayer key = players %= (Map.delete key)
 getPlayer :: ClientKey -> WorldS (Maybe Player)
 getPlayer key = uses players (Map.lookup key)
 
+addToHealth:: Float -> PlayerS ()
+addToHealth h = (pVehicle . vHealth) %= (max 0 . min 100 . (+h))
+
 updatePlayer :: ClientKey -> PlayerS () -> WorldS ()
 updatePlayer key comp = getPlayer key >>=
   \plyM -> case plyM of
@@ -52,10 +55,14 @@ updatePlayer key comp = getPlayer key >>=
     Just ply -> players %= (Map.insert (ply ^. pClientKey)) (execState comp ply)
 
 
-moveVehicle :: Direction -> VehicleS ()
-moveVehicle dir = use vSpeed >>= \s -> let (x, y) = help dir s in vPosition %= (L.^+^ (L.V2 x y))
+moveVehicle :: Rectangle -> Direction -> VehicleS ()
+moveVehicle bounds dir = use vSpeed >>= \s -> use vPosition >>= \p -> vPosition %= (const (newPos p s))
   where
-    help dir' s' = case dir' of
+    newPos (L.V2 x y) s =
+      let (ofx, ofy) = help s
+          inside = insideRectangle bounds (L.V2 (x + ofx) (y + ofy))
+      in if inside then (L.V2 (x + ofx) (y + ofy)) else (L.V2 x y)
+    help s' = case dir of
         DUp    -> (0.0, s')
         DLeft  -> (-s', 0.0)
         DDown  -> (0.0, -s')
@@ -83,5 +90,5 @@ addBulletsFromPlayer key = getPlayer key >>=
         let 
           bulletPos   =  (ply ^. pVehicle . vPosition) L.^+^ (downVectorDim $ vehicleTrans L.!* (upVectorDim (w ^. wPosition)))
           bulletAngle = (ply ^. pVehicle . vOrientation + w ^. wOrientation)
-          bullet      = (w ^. wBullet) {_bPosition = bulletPos, _bOrientation = bulletAngle}
+          bullet      = (w ^. wBullet) {_bPosition = bulletPos, _bOrientation = bulletAngle, _bTeam = (ply ^. pTeam)}
         addBullet $ bullet) (ply ^. pVehicle . vWeapons)

@@ -9,6 +9,7 @@ module GMessages.Client (
 
 import GCommon.Objects.Objects (World)
 import GCommon.Types.Generic (ClientKey)
+import Data.Time.Clock (UTCTime)
 
 
 
@@ -17,7 +18,7 @@ data ConnectionMessage = PlayerKey ClientKey
                        deriving (Show, Eq)
 
 data PingMessage = PingRequest
-                 | PingResponse String
+                 | PingResponse UTCTime
                  deriving (Show, Eq)
 
 data WorldMessage = WorldUpdate World
@@ -27,6 +28,7 @@ data WorldInputMessage = PressUp    | ReleaseUp
                        | PressLeft  | ReleaseLeft
                        | PressDown  | ReleaseDown
                        | PressRight | ReleaseRight
+                       | PressSpace | ReleaseSpace
                        deriving (Show, Eq)
 
 data ServiceMessage = PingMessage PingMessage

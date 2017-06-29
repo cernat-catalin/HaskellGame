@@ -5,17 +5,19 @@ module GCommon.Types.Generic (
   HostName,
   Port,
   PlayerSettings(..),
-  ConnHandle(..)
+  ConnHandle(..),
+  Direction(..)
   ) where
 
 import Data.Serialize (Serialize)
 import GHC.Generics (Generic)
-import Network.Socket (Socket, SockAddr)
+import Network.Socket (Socket, SockAddr(..))
 
 
 type ClientKey  = SockAddr
 type HostName   = String
 type Port       = String
+
 
 data PlayerSettings = PlayerSettings {
   name      :: String,
@@ -27,5 +29,7 @@ data ConnHandle = ConnHandle {
   connSocket :: Socket,
   connAddr   :: SockAddr
 } deriving (Show)
+
+data Direction = DUp | DRight | DDown | DLeft
 
 instance Serialize PlayerSettings

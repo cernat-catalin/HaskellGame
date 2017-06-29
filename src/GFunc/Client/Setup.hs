@@ -14,6 +14,9 @@ import           Graphics.Rendering.OpenGL (($=))
 import qualified Graphics.Rendering.OpenGL as GL
 import           System.FilePath ((</>))
 import qualified Graphics.GLUtil as U
+import Text.Read (readMaybe)
+import Control.Monad (when)
+import Data.Maybe (fromJust)
 
 import GLogger.Client (logInfo)
 import GCommon.Types.Generic (PlayerSettings(..), ConnHandle(..), ClientKey)
@@ -22,7 +25,7 @@ import GNetwork.Client (sendMessage)
 import GMessages.Network.ClientServer (Message(..), ConnectionMessage(..), ServiceMessage(..))
 import qualified GMessages.Network.ServerClient as SC
 import GOpenGL.PredefinedMeshes
-import GOpenGL.Meshes (ShaderResources(..), Mesh(..), MeshObject(..))
+import GOpenGL.Meshes (ShaderResources(..), Mesh(..), MeshObject(..), MeshObjectMap, MeshMap)
 
 
 
@@ -39,11 +42,39 @@ gatherSettings :: IO PlayerSettings
 gatherSettings = do
   putStrLn "Enter name:"
   name <- getLine
+
+  team <- getTeam
+  vehicle <- getVehicle
+
+  return $ PlayerSettings name team vehicle
+
+getTeam :: IO Int
+getTeam = do
   putStrLn "Pick a team\n1 - Blue\n2 - Red"
-  team <- read <$> getLine
-  putStrLn "Choose vehicle\n1 - Default"
-  vehicleId <- read <$> getLine
-  return $ PlayerSettings name team vehicleId
+  teamM <- readMaybe <$> getLine :: IO (Maybe Int)
+  case teamM of
+    Nothing -> do
+      putStrLn "Invalid team, pick again."
+      getTeam
+    Just team -> if (team /= 1 && team /= 2)
+      then do
+        putStrLn "Invalid team, pick again."
+        getTeam
+      else return team
+
+getVehicle :: IO Int
+getVehicle = do
+  putStrLn "Choose vehicle\n1 - Default1\n2 - Default2\n3 - Default3"
+  vehicleM <- readMaybe <$> getLine :: IO (Maybe Int)
+  case vehicleM of
+    Nothing -> do
+      putStrLn "Invalid vehicle, pick again."
+      getVehicle
+    Just vehicle -> if (1 > vehicle || 3 < vehicle)
+      then do
+        putStrLn "Invalid vehicle, pick again."
+        getVehicle
+      else return vehicle
 
 receivePlayerKey :: ConnHandle -> IO ClientKey
 receivePlayerKey connHandle@ConnHandle{..} = do
@@ -56,36 +87,76 @@ receivePlayerKey connHandle@ConnHandle{..} = do
  where
   maxBytes = 1024
 
-meshMapSetup :: (HMap.HashMap Int MeshObject) -> IO (HMap.HashMap Int Mesh)
+meshMapSetup :: MeshObjectMap -> IO MeshMap
 meshMapSetup objectsMap = do
-  background'  <- backGround objectsMap
+  background'  <- backGroundMesh objectsMap
   menuBackgroundMesh' <- menuBackgroundMesh objectsMap
-  bulletMesh' <- bulletMesh objectsMap
-  vehicle1' <- vehicle1 objectsMap
+
+  vehicle1Red' <- vehicle1RedMesh objectsMap
+  vehicle1Blue' <- vehicle1BlueMesh objectsMap
+  bullet1RedMesh' <- bullet1RedMesh objectsMap
+  bullet1BlueMesh' <- bullet1BlueMesh objectsMap
+
+  vehicle2Red' <- vehicle2RedMesh objectsMap
+  vehicle2Blue' <- vehicle2BlueMesh objectsMap
+  bullet2RedMesh' <- bullet2RedMesh objectsMap
+  bullet2BlueMesh' <- bullet2BlueMesh objectsMap
+
+  vehicle3Red' <- vehicle3RedMesh objectsMap
+  vehicle3Blue' <- vehicle3BlueMesh objectsMap
+  bullet3RedMesh' <- bullet3RedMesh objectsMap
+  bullet3BlueMesh' <- bullet3BlueMesh objectsMap
+
   squareShallowMesh' <- squareShallowMesh objectsMap
-  healthMesh' <- healthMesh objectsMap
-  let meshMap = (HMap.insert 0 background') .
-                (HMap.insert 1 bulletMesh') .
-                (HMap.insert (-1) squareShallowMesh') .
-                (HMap.insert (-2) menuBackgroundMesh') .
-                (HMap.insert (-3) healthMesh') .
-                (HMap.insert 2 vehicle1') $ HMap.empty
+  healthMeshBackRed' <- healthBackRedMesh objectsMap
+  healthMeshFrontRed' <- healthFrontRedMesh objectsMap
+  healthMeshBackBlue' <- healthBackBlueMesh objectsMap
+  healthMeshFrontBlue' <- healthFrontBlueMesh objectsMap
+  minimap' <- minimapMesh objectsMap
+  minimapDotRed' <- minimapDotRed objectsMap
+  minimapDotBlue' <- minimapDotBlue objectsMap
+  minimapDotGreen' <- minimapDotGreen objectsMap
+  let meshMap = (HMap.insert "background" background') .
+                (HMap.insert "squareShallow" squareShallowMesh') .
+                (HMap.insert "menuBackground" menuBackgroundMesh') .
+                (HMap.insert "healthBackRed" healthMeshBackRed') .
+                (HMap.insert "healthFrontRed" healthMeshFrontRed') .
+                (HMap.insert "healthBackBlue" healthMeshBackBlue') .
+                (HMap.insert "healthFrontBlue" healthMeshFrontBlue') .
+                (HMap.insert "minimap" minimap') .
+                (HMap.insert "minimapDotRed" minimapDotRed') .
+                (HMap.insert "minimapDotBlue" minimapDotBlue') .
+                (HMap.insert "minimapDotGreen" minimapDotGreen') .
+                (HMap.insert "vehicle1Red" vehicle1Red') .
+                (HMap.insert "vehicle1Blue" vehicle1Blue') .
+                (HMap.insert "bullet1Red" bullet1RedMesh') .
+                (HMap.insert "bullet1Blue" bullet1BlueMesh') .
+                (HMap.insert "vehicle2Red" vehicle2Red') .
+                (HMap.insert "vehicle2Blue" vehicle2Blue') .
+                (HMap.insert "bullet2Red" bullet2RedMesh') .
+                (HMap.insert "bullet2Blue" bullet2BlueMesh') .
+                (HMap.insert "vehicle3Red" vehicle3Red') .
+                (HMap.insert "vehicle3Blue" vehicle3Blue') .
+                (HMap.insert "bullet3Red" bullet3RedMesh') .
+                (HMap.insert "bullet3Blue" bullet3BlueMesh') $ HMap.empty
   return meshMap
 
-meshObjectsMapSetup :: IO (HMap.HashMap Int MeshObject)
+meshObjectsMapSetup :: IO MeshObjectMap
 meshObjectsMapSetup = do
-  background' <- backgroundObj
-  menuBackground' <- menuBackgroundObj
-  triangle' <- triangle
-  square'   <- square
-  circle'   <- circle
-  squareShallow' <- squareShallow
-  let meshObjectsMap = (HMap.insert 0 background') .
-                       (HMap.insert 1 triangle') .
-                       (HMap.insert 2 square') .
-                       (HMap.insert (-1) squareShallow') .
-                       (HMap.insert (-2) menuBackground') .
-                       (HMap.insert 3 circle') $ HMap.empty
+  background' <- backgroundMeshObj
+  triangle' <- triangleMeshObj
+  square'   <- squareMeshObj
+  squareTransparent' <- squareTransparentMeshObj
+  circle'   <- circleMeshObj
+  circleTransparent' <- circleTransparentMeshObj
+  squareShallow' <- squareShallowMeshObj
+  let meshObjectsMap = (HMap.insert "background" background') .
+                       (HMap.insert "triangle" triangle') .
+                       (HMap.insert "square" square') .
+                       (HMap.insert "squareTransparent" squareTransparent') .
+                       (HMap.insert "circle" circle') .
+                       (HMap.insert "circleTransparent" circleTransparent') .
+                       (HMap.insert "squareShallow" squareShallow') $ HMap.empty
   return meshObjectsMap
 
 shaderResourcesSetup :: IO ShaderResources

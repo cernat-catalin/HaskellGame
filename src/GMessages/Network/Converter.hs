@@ -38,7 +38,7 @@ instance ConverterWithKey CS.WorldMessage S.WorldMessage where
 
 instance ConverterWithKey CS.PingMessage S.PingMessage where
   convertWithKey message key = S.KeyMessage key $ case message of
-    CS.PingRequest -> S.PingRequest
+    CS.PingRequest ping -> S.PingRequest ping
 
 instance ConverterWithKey CS.ConnectionMessage S.ConnectionMessage where
   convertWithKey message key = S.KeyMessage key $ case message of

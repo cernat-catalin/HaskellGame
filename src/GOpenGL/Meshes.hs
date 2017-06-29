@@ -2,6 +2,8 @@ module GOpenGL.Meshes (
   ShaderResources(..),
   MeshObject(..),
   Mesh(..),
+  MeshObjectMap,
+  MeshMap,
   Color,
   drawMesh
   ) where
@@ -22,8 +24,8 @@ data ShaderResources = ShaderResources {
   transformUnif :: String,
   projectionUnif :: String,
   transparUnif  :: String,
-  meshMap       :: HMap.HashMap Int Mesh,
-  meshObjectsMap :: HMap.HashMap Int MeshObject
+  meshMap       :: MeshMap,
+  meshObjectsMap :: MeshObjectMap
 }
 
 data MeshObject = MeshObject {
@@ -32,6 +34,8 @@ data MeshObject = MeshObject {
 }
 
 type Color = V3 GLfloat
+type MeshObjectMap = HMap.HashMap String MeshObject
+type MeshMap = HMap.HashMap String Mesh
 
 data Mesh = MeshLeaf MeshObject Color
           | MeshNode [(Mesh, M33 GLfloat)]

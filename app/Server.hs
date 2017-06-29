@@ -10,7 +10,7 @@ import GState.Server (newServer)
 import GNetwork.Server (listenTo, masterReceiver)
 import GLogger.Server (initLogger, cleanLog, logInfo)
 import GMainLoop.Server (mainLoop)
-import GServices.Server (connectionService)
+import GServices.Server (connectionService, pingService)
 
 
 main :: IO ()
@@ -18,10 +18,12 @@ main = withSocketsDo $ do
   cleanLog
   initLogger
 
-  putStrLn "Enter ip:"
-  ip <- getLine
-  putStrLn "Enter port:"
-  port <- getLine
+  -- putStrLn "Enter ip:"
+  -- ip <- getLine
+  -- putStrLn "Enter port:"
+  -- port <- getLine
+  let ip   = "127.0.0.1"
+      port = "10541"
 
   messageSock <- listenTo ip port
   server <- newServer messageSock
@@ -29,4 +31,5 @@ main = withSocketsDo $ do
 
   _ <- forkIO (masterReceiver server)
   _ <- forkIO (connectionService server)
+  _ <- forkIO (pingService server)
   mainLoop server
