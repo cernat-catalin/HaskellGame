@@ -3,7 +3,8 @@
 module GFunc.Client.Setup (
   initialSetup,
   shaderResourcesSetup,
-  gatherSettings
+  gatherSettings,
+  gatherSettingsReset
   ) where
 
 import qualified Network.Socket.ByteString as NSB
@@ -19,7 +20,7 @@ import Control.Monad (when)
 import Data.Maybe (fromJust)
 
 import GLogger.Client (logInfo)
-import GCommon.Types.Generic (PlayerSettings(..), ConnHandle(..), ClientKey)
+import GCommon.Types.Generic (PlayerSettings(..), PlayerSettingsReset(..), ConnHandle(..), ClientKey)
 import GState.Client (ClientState(..), newClientState)
 import GNetwork.Client (sendMessage)
 import GMessages.Network.ClientServer (Message(..), ConnectionMessage(..), ServiceMessage(..))
@@ -48,6 +49,13 @@ gatherSettings = do
 
   return $ PlayerSettings name team vehicle
 
+gatherSettingsReset :: IO PlayerSettingsReset
+gatherSettingsReset = do
+  team <- getTeam
+  vehicle <- getVehicle
+
+  return $ PlayerSettingsReset team vehicle
+
 getTeam :: IO Int
 getTeam = do
   putStrLn "Pick a team\n1 - Blue\n2 - Red"
@@ -64,7 +72,7 @@ getTeam = do
 
 getVehicle :: IO Int
 getVehicle = do
-  putStrLn "Choose vehicle\n1 - Default1\n2 - Default2\n3 - Default3"
+  putStrLn "Choose vehicle\n1 - (Low damage, triple shot, fast)\n2 - (Medium damage, double shot)\n3 - (High damage, single shot, slow)"
   vehicleM <- readMaybe <$> getLine :: IO (Maybe Int)
   case vehicleM of
     Nothing -> do

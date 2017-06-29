@@ -11,7 +11,7 @@ import qualified Linear as L
 import Graphics.Rendering.OpenGL (GLfloat)
 import Data.Time.Clock (UTCTime)
 
-import GCommon.Types.Generic (ClientKey, PlayerSettings(..))
+import GCommon.Types.Generic (ClientKey, PlayerSettings(..), PlayerSettingsReset)
 import GCommon.Geometry (Point)
 
 
@@ -25,6 +25,7 @@ data PingMessage = PingRequest UTCTime
 
 data WorldMessage = PositionUpdate (L.V2 GLfloat, GLfloat)
                   | SettingsUpdate PlayerSettings
+                  | SettingsReset PlayerSettingsReset
                   | AddPlayer PlayerSettings
                   | RemovePlayer
                   | Fire

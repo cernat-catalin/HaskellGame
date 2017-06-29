@@ -4,7 +4,7 @@ module GMainLoop.Server (
   mainLoop
   ) where
 
-import Control.Monad (join)
+import Control.Monad (join, mapM_)
 import Control.Monad.State (execState)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.STM (atomically, isEmptyTChan, readTChan)
@@ -17,13 +17,13 @@ import Data.List.Ordered (union)
 import qualified Data.Map as Map
 import Debug.Trace
 
-import GState.Server (Server(..))
-import GNetwork.Server (broadcast)
+import GState.Server (Server(..), lookupClient)
+import GNetwork.Server (broadcast, sendMessage)
 import GMessages.Server as S (KeyMessage(..), WorldMessage(..))
-import GMessages.Network.ServerClient as SC (Message(..), WorldMessage(..))
+import GMessages.Network.ServerClient as SC (Message(..), WorldMessage(..), ServiceMessage(..), SettingsMessage(..))
 import GCommon.Objects.Objects as GO
 import GCommon.Geometry (Rectangle(..), translateRectangle)
-import GCommon.Objects.Transforms (updatePlayer, addPlayer, changePlayerSettings, removePlayer, addBulletsFromPlayer, addToHealth)
+import GCommon.Objects.Transforms (updatePlayer, addPlayer, changePlayerSettings, changePlayerSettingsReset, removePlayer, addBulletsFromPlayer, addToHealth)
 
 
 mainLoop :: Server -> IO ()
@@ -64,14 +64,32 @@ processMessage (S.KeyMessage key message) =
   case message of
     AddPlayer settings -> addPlayer (newPlayer key settings)
     SettingsUpdate settings -> changePlayerSettings key settings
+    SettingsReset settings -> changePlayerSettingsReset key settings
     RemovePlayer -> removePlayer key
     PositionUpdate (pos, angle)-> updatePlayer key (((pVehicle . vPosition) .= pos) >> ((pVehicle. vOrientation) .= angle))
     Fire -> addBulletsFromPlayer key
 
 simulateWorld :: Server -> IO World
-simulateWorld Server{..} = do
+simulateWorld server@Server{..} = do
   let bullets' = catMaybes $ map moveBullet (world ^. bullets)
-  return $ execState updateWorldPar $ world { _bullets = bullets' }
+      world' = execState updateWorldPar $ world { _bullets = bullets' }
+  identifyDeadPlayers $ server {world = world'}
+
+identifyDeadPlayers :: Server -> IO World
+identifyDeadPlayers server@Server{..} = do
+  mapM_ (\ply ->
+    if ((ply ^. pVehicle . vHealth == 0) && not (ply ^. pDead))
+      then do
+        clientM <- atomically $ lookupClient server (ply ^. pClientKey) 
+        case clientM of
+          Just client -> do 
+            atomically $ sendMessage client $ SC.ServiceMessage $ SC.SettingsMessage $ SC.Dead
+            return ()
+          Nothing -> return ()
+      else return ()
+    ) (world ^. players)
+  let plys' = (Map.map (\ply -> ply {_pDead = (ply ^. pVehicle . vHealth == 0)}) $ (world ^. players))
+  return world {_players = plys'}
 
 moveBullet :: Bullet -> Maybe Bullet
 moveBullet bullet@Bullet{..} =

@@ -5,6 +5,7 @@ module GCommon.Types.Generic (
   HostName,
   Port,
   PlayerSettings(..),
+  PlayerSettingsReset(..),
   ConnHandle(..),
   Direction(..)
   ) where
@@ -25,6 +26,11 @@ data PlayerSettings = PlayerSettings {
   vehicleId :: Int
 } deriving (Show, Generic, Eq)
 
+data PlayerSettingsReset = PlayerSettingsReset {
+  rTeam :: Int,
+  rVehicleId :: Int
+} deriving (Show, Generic, Eq)
+
 data ConnHandle = ConnHandle {
   connSocket :: Socket,
   connAddr   :: SockAddr
@@ -33,3 +39,4 @@ data ConnHandle = ConnHandle {
 data Direction = DUp | DRight | DDown | DLeft
 
 instance Serialize PlayerSettings
+instance Serialize PlayerSettingsReset

@@ -51,3 +51,4 @@ messageAssigner ClientState{..} message = atomically $ do
     SC.WorldMessage worldMessage     -> writeTChan worldUpdateChan (convert worldMessage)
     SC.ServiceMessage serviceMessage -> case (convert serviceMessage) of
       C.PingMessage pingMessage -> writeTChan pingSvcChan pingMessage
+      C.SettingsMessage settingsMessage -> writeTChan settingsSvcChan settingsMessage

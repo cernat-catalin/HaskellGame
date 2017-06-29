@@ -24,6 +24,8 @@ instance Converter SC.ServiceMessage C.ServiceMessage where
   convert message' = case message' of
     SC.PingMessage message -> C.PingMessage $ case message of
       SC.PingResponse ping -> C.PingResponse ping
+    SC.SettingsMessage message -> C.SettingsMessage $ case message of
+      SC.Dead -> C.Dead
 
 
 
@@ -34,6 +36,7 @@ instance ConverterWithKey CS.WorldMessage S.WorldMessage where
   convertWithKey message key = S.KeyMessage key $ case message of
     CS.PositionUpdate position -> S.PositionUpdate position
     CS.SettingsUpdate settings -> S.SettingsUpdate settings
+    CS.SettingsReset settings -> S.SettingsReset settings
     CS.Fire                    -> S.Fire
 
 instance ConverterWithKey CS.PingMessage S.PingMessage where

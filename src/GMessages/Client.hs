@@ -32,8 +32,10 @@ data WorldInputMessage = PressUp    | ReleaseUp
                        deriving (Show, Eq)
 
 data ServiceMessage = PingMessage PingMessage
+                    | SettingsMessage SettingsMessage
                     deriving (Show, Eq)
 
 data SettingsMessage = Quit
                      | OpenMenu
+                     | Dead
                      deriving (Show, Eq)

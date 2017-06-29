@@ -3,6 +3,7 @@
 module GCommon.Objects.Transforms (
   addPlayer,
   changePlayerSettings,
+  changePlayerSettingsReset,
   removePlayer,
   getPlayer,
   updatePlayer,
@@ -24,7 +25,7 @@ import Linear (V2(..))
 import Graphics.Rendering.OpenGL (GLfloat)
 
 import GCommon.Objects.Objects as GO
-import GCommon.Types.Generic (ClientKey, PlayerSettings, Direction(..))
+import GCommon.Types.Generic (ClientKey, PlayerSettings, PlayerSettingsReset, Direction(..))
 import GCommon.Geometry (Angle, translate, rotate, scale, Rectangle, insideRectangle)
 
 
@@ -38,6 +39,13 @@ changePlayerSettings key settings = getPlayer key >>=
     Nothing  -> return ()
     Just ply -> do
       players %= (Map.insert (ply ^. pClientKey)) (newPlayer key settings)
+
+changePlayerSettingsReset :: ClientKey -> PlayerSettingsReset -> WorldS ()
+changePlayerSettingsReset key settings = getPlayer key >>=
+  \plyM -> case plyM of
+    Nothing  -> return ()
+    Just ply -> do
+      players %= (Map.insert (ply ^. pClientKey)) (playerReset key (ply ^. pName) settings)
 
 removePlayer :: ClientKey -> WorldS ()
 removePlayer key = players %= (Map.delete key)

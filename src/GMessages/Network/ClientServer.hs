@@ -16,7 +16,7 @@ import Graphics.Rendering.OpenGL (GLfloat)
 import Data.Time.Clock (UTCTime(..), DiffTime(..))
 import Data.Time.Calendar (Day(..))
 
-import GCommon.Types.Generic (PlayerSettings)
+import GCommon.Types.Generic (PlayerSettings, PlayerSettingsReset)
 
 
 
@@ -29,6 +29,7 @@ data PingMessage = PingRequest UTCTime
 
 data WorldMessage = PositionUpdate (L.V2 GLfloat, GLfloat)
                   | SettingsUpdate PlayerSettings
+                  | SettingsReset PlayerSettingsReset
                   | Fire
                   deriving (Show, Eq, Generic)
 

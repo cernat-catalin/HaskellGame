@@ -7,7 +7,7 @@ module GCommon.Objects.Objects (
   Weapon(..), WeaponsS, wPosition, wOrientation, wBullet,
   Vehicle(..), VehicleS, vPosition, vOrientation, vMeshId, vWeapons, vBounding, vHealth, vSpeed, vFireRate,
   Bullet(..), BulletS, bPosition, bOrientation, bBounding, bTeam, bSpeed, bTravel, bDamage, bMeshId,
-  Player(..), PlayerS, pClientKey, pVehicle, pName, pTeam, pScore, newPlayer,
+  Player(..), PlayerS, pClientKey, pVehicle, pName, pTeam, pScore, newPlayer, playerReset, pDead,
   World(..), WorldS, players, bullets, newWorld, wBounding
   ) where
 
@@ -22,7 +22,7 @@ import qualified Data.Map as Map
 import Linear (V2(..))
 import Graphics.Rendering.OpenGL (GLfloat)
 
-import GCommon.Types.Generic (ClientKey, PlayerSettings(..))
+import GCommon.Types.Generic (ClientKey, PlayerSettings(..), PlayerSettingsReset(..))
 import GCommon.Geometry (Rectangle(..), Angle)
 
 
@@ -71,7 +71,8 @@ data Player = Player {
   _pVehicle   :: Vehicle,
   _pName      :: String,
   _pTeam      :: Int,
-  _pScore     :: Int
+  _pScore     :: Int,
+  _pDead      :: Bool
 } deriving (Show, Eq, Generic)
 
 type PlayerS = State Player
@@ -123,7 +124,7 @@ vehicle1 = Vehicle {
   ],
 
   _vHealth    = 100,
-  _vSpeed     = 0.01
+  _vSpeed     = 0.015
 }
 
 bullet1 :: Bullet
@@ -133,9 +134,9 @@ bullet1 = Bullet {
   _bOrientation = 0,
   _bMeshId = 1,
   _bTeam = 0,
-  _bSpeed = 0.5,
+  _bSpeed = 1,
   _bTravel = 5,
-  _bDamage = 10
+  _bDamage = 5
 }
 
 vehicle2 :: Vehicle
@@ -149,7 +150,7 @@ vehicle2 = Vehicle {
   _vWeapons = [(Weapon (V2 0 0.40) 0 bullet2)],
 
   _vHealth    = 100,
-  _vSpeed     = 0.01
+  _vSpeed     = 0.0075
 }
 
 bullet2 :: Bullet
@@ -159,7 +160,7 @@ bullet2 = Bullet {
   _bOrientation = 0,
   _bMeshId = 2,
   _bTeam = 0,
-  _bSpeed = 0.5,
+  _bSpeed = 0.3,
   _bTravel = 5,
   _bDamage = 10
 }
@@ -188,7 +189,7 @@ bullet3 = Bullet {
   _bOrientation = 0,
   _bMeshId = 3,
   _bTeam = 0,
-  _bSpeed = 0.5,
+  _bSpeed = 0.7,
   _bTravel = 5,
   _bDamage = 10
 }
@@ -198,8 +199,8 @@ bullet3 = Bullet {
 newVehicle :: Int -> Vehicle
 newVehicle vehicleId = case vehicleId of
   1 -> vehicle1
-  2 -> vehicle2
-  3 -> vehicle3
+  3 -> vehicle2
+  2 -> vehicle3
 
 newPlayer :: ClientKey -> PlayerSettings -> Player
 newPlayer key PlayerSettings{..} = Player {
@@ -207,7 +208,18 @@ newPlayer key PlayerSettings{..} = Player {
   _pVehicle   = newVehicle vehicleId,
   _pName      = name,
   _pTeam      = team,
-  _pScore     = 0
+  _pScore     = 0,
+  _pDead      = False
+}
+
+playerReset :: ClientKey -> String -> PlayerSettingsReset -> Player
+playerReset key name' PlayerSettingsReset{..} = Player {
+  _pClientKey = key,
+  _pVehicle   = newVehicle rVehicleId,
+  _pName      = name',
+  _pTeam      = rTeam,
+  _pScore     = 0,
+  _pDead      = False
 }
 
 newWorld :: World

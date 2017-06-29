@@ -16,6 +16,7 @@ import System.Exit (ExitCode(..))
 import System.Posix.Signals (installHandler, keyboardSignal, Handler(..))
 import Control.Lens ((^.))
 import qualified Data.HashMap.Strict as HMap
+import qualified Data.Map as Map
 import qualified Graphics.GLUtil as U
 import qualified Linear as L
 import Control.Monad.State (put, evalState, execState, modify)
@@ -90,7 +91,7 @@ drawMinimap ClientState{..} shaderResources@ShaderResources{..} window = do
         2 -> case HMap.lookup "minimapDotRed" meshMap of
               Nothing   -> return ()
               Just mesh -> drawMesh shaderResources (translate (L.V2 (x * ar2) (y * ar2)) L.!*! minimapTrans) mesh
-    ) $ world ^. players
+    ) $ Map.filter (\ply -> ply ^. pVehicle . vHealth /= 0) $ (world ^. players)
 
 
 drawWorld :: ClientState -> ShaderResources -> GLFW.Window -> IO ()
@@ -126,7 +127,7 @@ drawWorld clientState@ClientState{..} shaderResources@ShaderResources{..} window
   mapM_ (\ply -> case HMap.lookup ("vehicle" ++ (show $ ply ^. pVehicle . vMeshId) ++ (if (ply ^. pTeam == 1) then "Blue" else "Red")) meshMap of
     Nothing   -> return ()
     Just mesh -> let trans = (translate $ ply ^. pVehicle . vPosition) L.!*! (rotate $ ply ^. pVehicle . vOrientation) in
-      drawMesh shaderResources (cameraTrans L.!*! trans) mesh) $ world ^. players
+      drawMesh shaderResources (cameraTrans L.!*! trans) mesh) $ Map.filter (\ply -> ply ^. pVehicle . vHealth /= 0) $ (world ^. players)
 
 
   drawHUD clientState shaderResources window

@@ -4,6 +4,7 @@
 module GMessages.Network.ServerClient (
   ConnectionMessage(..),
   PingMessage(..),
+  SettingsMessage(..),
   WorldMessage(..),
   ServiceMessage(..),
   Message(..)
@@ -24,10 +25,14 @@ data ConnectionMessage = PlayerKey ClientKey
 data PingMessage = PingResponse UTCTime
                  deriving (Show, Eq, Generic)
 
+data SettingsMessage = Dead
+                     deriving (Show, Eq, Generic)
+
 data WorldMessage = WorldUpdate World
                   deriving (Show, Eq, Generic)
 
 data ServiceMessage = PingMessage PingMessage
+                    | SettingsMessage SettingsMessage
                     deriving (Show, Eq, Generic)
 
 data Message = WorldMessage WorldMessage
@@ -44,6 +49,7 @@ instance Serialize UTCTime
 
 instance Serialize ConnectionMessage
 instance Serialize PingMessage
+instance Serialize SettingsMessage
 instance Serialize ServiceMessage
 instance Serialize WorldMessage
 instance Serialize Message

@@ -13,7 +13,7 @@ import Control.Monad (join, forever)
 import Text.Printf (printf)
 import Data.Time (getCurrentTime, addUTCTime, diffUTCTime, NominalDiffTime(..))
 
-import GFunc.Client.Setup (gatherSettings)
+import GFunc.Client.Setup (gatherSettings, gatherSettingsReset)
 import GState.Client (ClientState(..))
 import GMessages.Network.ClientServer as CS (Message(..), ServiceMessage(..), ConnectionMessage(..), PingMessage(..), WorldMessage(..))
 import GMessages.Client as C (SettingsMessage(..), PingMessage(..))
@@ -32,6 +32,10 @@ settingsService ClientState{..} = forever $ join $ atomically $ do
         atomically $ modifyTVar' shouldQuit (const True)
       OpenMenu   -> do
         atomically $ modifyTVar' menuIsOn (const True)
+      Dead -> do
+        putStrLn "You have died."
+        atomically $ modifyTVar' menuIsOn (const True)
+
 
 pingService :: ClientState -> IO ()
 pingService ClientState{..} = forever $ join $ atomically $ do
@@ -61,8 +65,9 @@ menuService ClientState{..} = forever $ join $ atomically $ do
   menuIsOn_ <- readTVar menuIsOn
   if menuIsOn_ == True
     then return $ do
-      settings <- gatherSettings
-      _ <- sendMessage serverHandle (WorldMessage $ SettingsUpdate settings)
+      putStrLn "Pick another combination."
+      settings <- gatherSettingsReset
+      _ <- sendMessage serverHandle (WorldMessage $ SettingsReset settings)
       atomically $ modifyTVar' menuIsOn (const False)
       return ()
     else retry
