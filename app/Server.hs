@@ -18,12 +18,12 @@ main = withSocketsDo $ do
   cleanLog
   initLogger
 
-  -- putStrLn "Enter ip:"
-  -- ip <- getLine
-  -- putStrLn "Enter port:"
-  -- port <- getLine
-  let ip   = "127.0.0.1"
-      port = "10541"
+  putStrLn "Enter ip:"
+  ip <- getLine
+  putStrLn "Enter port:"
+  port <- getLine
+  -- let ip   = "127.0.0.1"
+  --     port = "10541"
 
   messageSock <- listenTo ip port
   server <- newServer messageSock
