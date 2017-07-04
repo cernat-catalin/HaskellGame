@@ -19,13 +19,13 @@ main = withSocketsDo $ do
   cleanLog
   initLogger
 
-  putStrLn "Enter ip:"
-  ip <- getLine
-  putStrLn "Enter port:"
-  port <- getLine
+  -- putStrLn "Enter ip:"
+  -- ip <- getLine
+  -- putStrLn "Enter port:"
+  -- port <- getLine
 
-  -- let ip   = "127.0.0.1"
-  --     port = "10541"
+  let ip   = "127.0.0.1"
+      port = "10541"
 
   serverHandle   <- connectTo ip port
   clientState    <- initialSetup serverHandle

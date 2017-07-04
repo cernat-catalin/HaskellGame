@@ -48,7 +48,6 @@ sendMessageRaw Server{..} Client{..} message = do
   _ <- NSB.sendTo messageSocket message key
   return ()
 
--- TODO research unbounded STM
 broadcast :: Server -> SC.Message -> STM ()
 broadcast Server{..} msg = do
   clientMap <- readTVar clients
@@ -72,7 +71,6 @@ messageAssigner Server{..} key message = atomically $ do
       CS.ConnectionMessage connectionMessage -> writeTChan connectionSvcChan (convertWithKey connectionMessage key)
       CS.PingMessage pingMessage             -> writeTChan pingSvcChan (convertWithKey pingMessage key)
 
--- TODO: use async race (I think) to create a sibling relationship between clientSender and clientServiceConsumer
 clientSender :: Server -> Client -> IO ()
 clientSender Server{..} Client{..} = forever $ join $ atomically $ do
   message <- readTChan outMessageChan
