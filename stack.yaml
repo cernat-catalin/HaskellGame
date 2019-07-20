@@ -3,5 +3,6 @@ extra-package-dbs: []
 packages:
 - '.'
 extra-deps:
-- GLUtil-0.9.1.1
-resolver: lts-8.19
+- GLUtil-0.10.3
+- hpp-0.6.1
+resolver: lts-13.28

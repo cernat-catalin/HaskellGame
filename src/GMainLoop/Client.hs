@@ -86,7 +86,7 @@ processFireEvent ClientState{..} = do
         else do
           atomically $ do
             writeTVar lastTimeShot t1
-            writeTChan serverOutChan (CS.WorldMessage CS.Fire)
+            writeTChan serverOutChan (CS.WorldMessage playerKey CS.Fire)
           return ()
 
 processMousePos :: ClientState -> GLFW.Window -> IO ClientState
@@ -130,6 +130,6 @@ sendPositionUpdate ClientState{..} = do
   let playerM = evalState (getPlayer playerKey) world
   case playerM of
     Just player -> do
-      _ <- sendMessage serverHandle (CS.WorldMessage $ CS.PositionUpdate (player ^. pVehicle . vPosition, player ^. pVehicle . vOrientation))
+      _ <- sendMessage serverHandle (CS.WorldMessage playerKey $ CS.PositionUpdate (player ^. pVehicle . vPosition, player ^. pVehicle . vOrientation))
       return ()
     Nothing     -> return ()

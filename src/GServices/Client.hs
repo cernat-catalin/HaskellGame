@@ -28,7 +28,7 @@ settingsService ClientState{..} = forever $ join $ atomically $ do
   return $ do
     case message of
       Quit       -> do
-        _ <- sendMessage serverHandle (ServiceMessage $ ConnectionMessage ConnectionTerminated)
+        _ <- sendMessage serverHandle (ServiceMessage playerKey $ ConnectionMessage ConnectionTerminated)
         atomically $ modifyTVar' shouldQuit (const True)
       OpenMenu   -> do
         atomically $ modifyTVar' menuIsOn (const True)
@@ -44,7 +44,7 @@ pingService ClientState{..} = forever $ join $ atomically $ do
     case message of
       C.PingRequest -> do
         time <- getCurrentTime
-        _ <- sendMessage serverHandle (ServiceMessage $ PingMessage $ CS.PingRequest time)
+        _ <- sendMessage serverHandle (ServiceMessage playerKey $ PingMessage $ CS.PingRequest time)
         return ()
       PingResponse time -> do
         time' <- getCurrentTime
@@ -67,7 +67,7 @@ menuService ClientState{..} = forever $ join $ atomically $ do
     then return $ do
       putStrLn "Pick another combination."
       settings <- gatherSettingsReset
-      _ <- sendMessage serverHandle (WorldMessage $ SettingsReset settings)
+      _ <- sendMessage serverHandle (WorldMessage playerKey $ SettingsReset settings)
       atomically $ modifyTVar' menuIsOn (const False)
       return ()
     else retry

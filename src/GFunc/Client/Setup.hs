@@ -33,7 +33,7 @@ import GOpenGL.Meshes (ShaderResources(..), Mesh(..), MeshObject(..), MeshObject
 initialSetup :: ConnHandle -> IO ClientState
 initialSetup connHandle = do
   settings <- gatherSettings
-  _   <- sendMessage connHandle (ServiceMessage $ ConnectionMessage $ ConnectionRequest settings)
+  _   <- sendMessage connHandle (ServiceMessage 0 $ ConnectionMessage $ ConnectionRequest settings)
   key <- receivePlayerKey connHandle
   logInfo (printf "Key received: %s" (show key))
   newClientState connHandle key

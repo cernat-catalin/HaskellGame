@@ -10,7 +10,7 @@ module GState.Server (
   lookupClient
   ) where
 
-import Network.Socket (Socket)
+import Network.Socket (Socket, SockAddr)
 import qualified Control.Concurrent.STM as STM
 import qualified Data.Map as Map
 
@@ -23,6 +23,7 @@ import GCommon.Objects.Objects (World(..), newWorld)
 
 data Client = Client {
   key            :: ClientKey,
+  address        :: SockAddr,
   outMessageChan :: STM.TChan Message
 }
 
@@ -56,18 +57,19 @@ newServer messageSocket = do
     world             = newWorld
   }
 
-newClient :: ClientKey -> STM.STM Client
-newClient key' = do
+newClient :: ClientKey -> SockAddr -> STM.STM Client
+newClient key' address' = do
   outMessageChan' <- STM.newTChan
 
   return Client {
     key            = key',
+    address        = address',
     outMessageChan = outMessageChan'
   }
 
-addClient :: Server -> ClientKey -> STM.STM Client
-addClient Server{..} key = do
-  client <- newClient key
+addClient :: Server -> ClientKey -> SockAddr -> STM.STM Client
+addClient Server{..} key address = do
+  client <- newClient key address
   STM.modifyTVar' clients $ Map.insert key client
   return client
 

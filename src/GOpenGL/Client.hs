@@ -146,7 +146,7 @@ withOpenGL clientState func = do
   success <- GLFW.init
   if success
     then do
-      GLFW.windowHint $ GLFW.WindowHint'Samples 4
+      GLFW.windowHint $ GLFW.WindowHint'Samples (Just 4)
       window <- GLFW.createWindow 640 480 "Haskell Game" Nothing Nothing
       GLFW.makeContextCurrent window
       flip (maybe (GLFW.terminate >> exitFailure)) window $ \window' -> do
@@ -163,5 +163,5 @@ withOpenGL clientState func = do
 
 exitGame :: ClientState -> ThreadId -> IO ()
 exitGame ClientState{..} id' = do
-  _ <- sendMessage serverHandle (ServiceMessage $ ConnectionMessage $ ConnectionTerminated)
+  _ <- sendMessage serverHandle (ServiceMessage playerKey $ ConnectionMessage $ ConnectionTerminated)
   throwTo id' ExitSuccess

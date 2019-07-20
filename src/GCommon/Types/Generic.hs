@@ -15,7 +15,7 @@ import GHC.Generics (Generic)
 import Network.Socket (Socket, SockAddr(..))
 
 
-type ClientKey  = SockAddr
+type ClientKey  = Int
 type HostName   = String
 type Port       = String
 

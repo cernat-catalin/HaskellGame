@@ -8,6 +8,7 @@ module GMessages.Server (
 
 
 import qualified Linear as L
+import qualified Network.Socket as NS
 import Graphics.Rendering.OpenGL (GLfloat)
 import Data.Time.Clock (UTCTime)
 
@@ -16,7 +17,7 @@ import GCommon.Geometry (Point)
 
 
 
-data ConnectionMessage = ConnectionRequest PlayerSettings
+data ConnectionMessage = ConnectionRequest NS.SockAddr PlayerSettings
                        | ConnectionTerminated
                        deriving (Show, Eq)
 

@@ -92,14 +92,14 @@ makeLenses ''World
 instance NFData Bullet
 instance NFData Weapon
 instance NFData Vehicle
-instance NFData PortNumber
-instance NFData SockAddr
+--instance NFData PortNumber
+--instance NFData SockAddr
 instance NFData Player
 
-deriving instance Generic SockAddr
-deriving instance Generic PortNumber
-instance Serialize PortNumber
-instance Serialize SockAddr
+--deriving instance Generic SockAddr
+--deriving instance Generic PortNumber
+--instance Serialize PortNumber
+--instance Serialize SockAddr
 instance Serialize Weapon
 instance Serialize Vehicle
 instance Serialize Bullet

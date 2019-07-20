@@ -24,12 +24,12 @@ connectionService :: Server-> IO ()
 connectionService server@Server{..} = forever $ join $ atomically $ do
   (KeyMessage key message) <- readTChan connectionSvcChan
   case message of
-    ConnectionRequest settings -> do
+    ConnectionRequest addr settings -> do
       clientM <- lookupClient server key
       case clientM of
         Just _  -> return $ logError (printf "Client %s is already connected but sent a conenction request" (show key))
         Nothing -> do
-          client <- addClient server key
+          client <- addClient server key addr
           writeTChan worldChan (KeyMessage key $ AddPlayer settings)
           return $ do
             logInfo (printf "Client %s connected" (show key))

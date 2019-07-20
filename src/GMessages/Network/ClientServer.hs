@@ -16,7 +16,7 @@ import Graphics.Rendering.OpenGL (GLfloat)
 import Data.Time.Clock (UTCTime(..), DiffTime(..))
 import Data.Time.Calendar (Day(..))
 
-import GCommon.Types.Generic (PlayerSettings, PlayerSettingsReset)
+import GCommon.Types.Generic (PlayerSettings, PlayerSettingsReset, ClientKey)
 
 
 
@@ -37,8 +37,8 @@ data ServiceMessage = PingMessage PingMessage
                     | ConnectionMessage ConnectionMessage
                     deriving (Show, Eq, Generic)
 
-data Message = WorldMessage WorldMessage
-             | ServiceMessage ServiceMessage
+data Message = WorldMessage ClientKey WorldMessage
+             | ServiceMessage ClientKey ServiceMessage
              deriving (Show, Eq, Generic)
 
 deriving instance Generic UTCTime

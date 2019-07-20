@@ -2,8 +2,11 @@
 
 module GMessages.Network.Converter (
   convert,
-  convertWithKey
+  convertWithKey,
+  connectionRequestConverter
 ) where
+
+import qualified Network.Socket as NS
 
 import qualified GMessages.Network.ClientServer as CS
 import qualified GMessages.Network.ServerClient as SC
@@ -43,7 +46,7 @@ instance ConverterWithKey CS.PingMessage S.PingMessage where
   convertWithKey message key = S.KeyMessage key $ case message of
     CS.PingRequest ping -> S.PingRequest ping
 
-instance ConverterWithKey CS.ConnectionMessage S.ConnectionMessage where
-  convertWithKey message key = S.KeyMessage key $ case message of
-    CS.ConnectionRequest settings -> S.ConnectionRequest settings
-    CS.ConnectionTerminated       -> S.ConnectionTerminated
+connectionRequestConverter :: CS.ConnectionMessage -> ClientKey -> NS.SockAddr -> S.KeyMessage S.ConnectionMessage
+connectionRequestConverter message key addr = S.KeyMessage key $ case message of
+  CS.ConnectionRequest settings -> S.ConnectionRequest addr settings
+  CS.ConnectionTerminated       -> S.ConnectionTerminated
