@@ -92,14 +92,8 @@ makeLenses ''World
 instance NFData Bullet
 instance NFData Weapon
 instance NFData Vehicle
---instance NFData PortNumber
---instance NFData SockAddr
 instance NFData Player
 
---deriving instance Generic SockAddr
---deriving instance Generic PortNumber
---instance Serialize PortNumber
---instance Serialize SockAddr
 instance Serialize Weapon
 instance Serialize Vehicle
 instance Serialize Bullet
@@ -118,9 +112,9 @@ vehicle1 = Vehicle {
   _vFireRate = 200,
 
   _vWeapons = [
-      (Weapon (V2 0 0.20) 0 bullet1),
-      (Weapon (V2 0.11 0.12) ((-pi) / 2) bullet1),
-      (Weapon (V2 (-0.11) 0.12) (pi / 2) bullet1)
+      Weapon (V2 0 0.20) 0 bullet1,
+      Weapon (V2 0.11 0.12) ((-pi) / 2) bullet1,
+      Weapon (V2 (-0.11) 0.12) (pi / 2) bullet1
   ],
 
   _vHealth    = 100,
@@ -147,7 +141,7 @@ vehicle2 = Vehicle {
   _vBounding  = Rectangle 0 0 0 0,
   _vFireRate = 1000,
 
-  _vWeapons = [(Weapon (V2 0 0.40) 0 bullet2)],
+  _vWeapons = [Weapon (V2 0 0.40) 0 bullet2],
 
   _vHealth    = 100,
   _vSpeed     = 0.0075
@@ -174,8 +168,8 @@ vehicle3 = Vehicle {
   _vFireRate = 500,
 
   _vWeapons = [
-    (Weapon (V2 (-0.0875) 0.3) 0 bullet3),
-    (Weapon (V2 (0.0875) 0.3) 0 bullet3)
+    Weapon (V2 (-0.0875) 0.3) 0 bullet3,
+    Weapon (V2 0.0875 0.3) 0 bullet3
   ],
 
   _vHealth    = 100,

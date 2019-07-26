@@ -1,3 +1,5 @@
 .stack-work
 server.log
 client.log
+.idea
+HaskellGame.iml
